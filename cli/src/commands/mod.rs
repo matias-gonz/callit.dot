@@ -1,6 +1,5 @@
 pub mod chain;
 pub mod contract;
-pub mod pallet;
 pub mod prove;
 
 use alloy::sol;

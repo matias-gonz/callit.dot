@@ -246,12 +246,6 @@ mod runtime {
 	#[runtime::pallet_index(33)]
 	pub type MessageQueue = pallet_message_queue;
 
-	#[runtime::pallet_index(40)]
-	pub type Statement = pallet_statement;
-
-	#[runtime::pallet_index(50)]
-	pub type TemplatePallet = pallet_template;
-
 	// Smart contracts (EVM + PVM via pallet-revive)
 	#[runtime::pallet_index(90)]
 	pub type Revive = pallet_revive;
@@ -356,18 +350,6 @@ pallet_revive::impl_runtime_apis_plus_revive_traits!(
 	impl cumulus_primitives_core::CollectCollationInfo<Block> for Runtime {
 		fn collect_collation_info(header: &<Block as sp_runtime::traits::Block>::Header) -> cumulus_primitives_core::CollationInfo {
 			ParachainSystem::collect_collation_info(header)
-		}
-	}
-
-	impl sp_statement_store::runtime_api::ValidateStatement<Block> for Runtime {
-		fn validate_statement(
-			source: sp_statement_store::runtime_api::StatementSource,
-			statement: sp_statement_store::Statement,
-		) -> Result<
-			sp_statement_store::runtime_api::ValidStatement,
-			sp_statement_store::runtime_api::InvalidStatement,
-		> {
-			Statement::validate_statement(source, statement)
 		}
 	}
 
