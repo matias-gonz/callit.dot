@@ -25,11 +25,6 @@ enum Commands {
 		#[command(subcommand)]
 		action: commands::chain::ChainAction,
 	},
-	/// Proof of existence pallet commands
-	Pallet {
-		#[command(subcommand)]
-		action: commands::pallet::PalletAction,
-	},
 	/// Proof of existence contract commands (via eth-rpc)
 	Contract {
 		#[command(subcommand)]
@@ -46,7 +41,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 	match cli.command {
 		Commands::Chain { action } => commands::chain::run(action, &cli.url).await?,
-		Commands::Pallet { action } => commands::pallet::run(action, &cli.url).await?,
 		Commands::Contract { action } => {
 			commands::contract::run(action, &cli.eth_rpc_url, &cli.url).await?
 		},

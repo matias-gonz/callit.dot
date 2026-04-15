@@ -5,7 +5,6 @@ import App from "./App";
 import "./index.css";
 
 const HomePage = lazy(() => import("./pages/HomePage"));
-const PalletPage = lazy(() => import("./pages/PalletPage"));
 const EvmContractPage = lazy(() => import("./pages/EvmContractPage"));
 const PvmContractPage = lazy(() => import("./pages/PvmContractPage"));
 const AccountsPage = lazy(() => import("./pages/AccountsPage"));
@@ -28,14 +27,6 @@ createRoot(document.getElementById("root")!).render(
 						element={
 							<Suspense fallback={routeFallback}>
 								<HomePage />
-							</Suspense>
-						}
-					/>
-					<Route
-						path="pallet"
-						element={
-							<Suspense fallback={routeFallback}>
-								<PalletPage />
 							</Suspense>
 						}
 					/>

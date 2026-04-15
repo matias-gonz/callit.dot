@@ -72,9 +72,9 @@ export default function HomePage() {
 					</span>
 				</h1>
 				<p className="text-text-secondary text-base leading-relaxed max-w-2xl">
-					A developer starter template demonstrating Proof of Existence implemented three
-					ways: as a Substrate pallet, a Solidity EVM contract, and a PVM contract. Drop a
-					file to claim its hash on-chain.
+					A developer starter template demonstrating Proof of Existence implemented two
+					ways: as a Solidity EVM contract and a PVM contract. Drop a file to claim its
+					hash on-chain.
 				</p>
 			</div>
 
@@ -156,19 +156,10 @@ export default function HomePage() {
 			</div>
 
 			{/* Feature cards */}
-			<div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-				<FeatureCard
-					title="Pallet PoE"
-					description="Claim file hashes via the Substrate FRAME pallet using PAPI."
-					link="/pallet"
-					accentColor="text-accent-blue"
-					borderColor="hover:border-accent-blue/20"
-					available={pallets.templatePallet}
-					unavailableReason="TemplatePallet not found in connected runtime"
-				/>
+			<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
 				<FeatureCard
 					title="EVM PoE (solc)"
-					description="Same proof of existence via Solidity compiled with solc, deployed to the EVM backend."
+					description="Proof of existence via Solidity compiled with solc, deployed to the EVM backend."
 					link="/evm"
 					accentColor="text-accent-purple"
 					borderColor="hover:border-accent-purple/20"

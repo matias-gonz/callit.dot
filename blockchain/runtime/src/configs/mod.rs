@@ -261,36 +261,6 @@ impl pallet_collator_selection::Config for Runtime {
 	type WeightInfo = ();
 }
 
-// Statement Store cost parameters.
-// StatementCost: flat fee per statement (10x existential deposit).
-// StatementByteCost: per-byte fee (existential deposit / 1024).
-// Min/MaxAllowedStatements: per-account statement count limits.
-// Min/MaxAllowedBytes: per-account total byte limits (1 MiB to 16 MiB).
-parameter_types! {
-	pub const StatementCost: Balance = 10 * EXISTENTIAL_DEPOSIT;
-	pub const StatementByteCost: Balance = EXISTENTIAL_DEPOSIT / 1024;
-	pub const MinAllowedStatements: u32 = 1;
-	pub const MaxAllowedStatements: u32 = 16;
-	pub const MinAllowedBytes: u32 = 1024 * 1024;
-	pub const MaxAllowedBytes: u32 = 16 * 1024 * 1024;
-}
-
-impl pallet_statement::Config for Runtime {
-	type RuntimeEvent = RuntimeEvent;
-	type Currency = Balances;
-	type StatementCost = StatementCost;
-	type ByteCost = StatementByteCost;
-	type MinAllowedStatements = MinAllowedStatements;
-	type MaxAllowedStatements = MaxAllowedStatements;
-	type MinAllowedBytes = MinAllowedBytes;
-	type MaxAllowedBytes = MaxAllowedBytes;
-}
-
-/// Configure the template proof-of-existence pallet.
-impl pallet_template::Config for Runtime {
-	type WeightInfo = pallet_template::weights::SubstrateWeight<Runtime>;
-}
-
 // ── pallet-revive (EVM + PVM smart contracts) ──────────────────────────
 
 parameter_types! {
