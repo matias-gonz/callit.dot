@@ -1,0 +1,24 @@
+[package]
+name = "stack-cli"
+description = "CLI tool for interacting with the Polkadot Stack Template chain via subxt and alloy."
+version = "0.1.0"
+license.workspace = true
+authors.workspace = true
+edition.workspace = true
+publish = false
+
+[dependencies]
+codec = { workspace = true, features = ["std"] }
+subxt = { workspace = true }
+subxt-signer = { workspace = true }
+tokio = { workspace = true }
+alloy = { workspace = true }
+clap = { version = "4", features = ["derive", "env"] }
+serde = { workspace = true, features = ["std", "derive"] }
+serde_json = { workspace = true, features = ["std"] }
+hex = "0.4"
+blake2 = "0.10"
+bip39 = "2"
+reqwest = { version = "0.12", features = ["json"] }
+sp-core = { workspace = true }
+sp-statement-store = { workspace = true }

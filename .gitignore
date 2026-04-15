@@ -1,0 +1,42 @@
+# Rust
+target/
+**/*.rs.bk
+*.pdb
+
+# Node
+node_modules/
+dist/
+.parcel-cache/
+*.tsbuildinfo
+
+# Environment
+.env
+.env.local
+
+# IDE
+.idea/
+.vscode/launch.json
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Chain data
+chain_data/
+/data/
+
+# PAPI generated (committed so frontend works out of the box)
+# Regenerate with: cd web && npx papi update && npx papi
+
+# Hardhat
+contracts/*/cache/
+contracts/*/artifacts/
+contracts/*/typechain-types/
+contracts/*/ignition/deployments/
+**/chain_spec.json
+
+# Polkadot SDK binaries (downloaded by scripts into repo-local bin/)
+/bin/
