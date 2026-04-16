@@ -2,6 +2,19 @@ import type { HardhatUserConfig } from "hardhat/config";
 import "@nomicfoundation/hardhat-viem";
 import "@nomicfoundation/hardhat-verify";
 import { vars } from "hardhat/config";
+import * as fs from "fs";
+import * as path from "path";
+
+const rootEnv = path.resolve(__dirname, "../../.env");
+if (fs.existsSync(rootEnv)) {
+	for (const line of fs.readFileSync(rootEnv, "utf8").split(/\r?\n/)) {
+		const m = line.match(/^\s*([A-Z_][A-Z0-9_]*)\s*=\s*(.*?)\s*$/i);
+		if (!m || line.trim().startsWith("#")) continue;
+		if (!(m[1] in process.env)) {
+			process.env[m[1]] = m[2].replace(/^['"](.*)['"]$/, "$1");
+		}
+	}
+}
 
 const config: HardhatUserConfig = {
 	solidity: "0.8.28",
@@ -17,7 +30,7 @@ const config: HardhatUserConfig = {
 		polkadotTestnet: {
 			url: "https://services.polkadothub-rpc.com/testnet",
 			chainId: 420420417,
-			accounts: [vars.get("PRIVATE_KEY", "")].filter(Boolean),
+			accounts: [process.env.PRIVATE_KEY || vars.get("PRIVATE_KEY", "")].filter(Boolean),
 		},
 	},
 	etherscan: {

@@ -8,6 +8,7 @@ import {
 	getWalletClient,
 } from "../config/evm";
 import { deployments } from "../config/deployments";
+import { getNetworkKey, getNetworkPresetEndpoints, type NetworkPreset } from "../config/network";
 import { useChainStore } from "../store/chainStore";
 
 interface Market {
@@ -50,10 +51,24 @@ function shortAddr(addr: string): string {
 	return `${addr.slice(0, 6)}…${addr.slice(-4)}`;
 }
 
+const NETWORK_LABELS: Record<NetworkPreset, string> = {
+	local: "Local Dev",
+	testnet: "Polkadot Hub TestNet",
+};
+
 export default function MarketsPage() {
 	const ethRpcUrl = useChainStore((s) => s.ethRpcUrl);
+	const setWsUrl = useChainStore((s) => s.setWsUrl);
+	const setEthRpcUrl = useChainStore((s) => s.setEthRpcUrl);
+	const network = getNetworkKey(ethRpcUrl);
 	const scopedStorageKey = `${STORAGE_KEY}:${ethRpcUrl}`;
-	const defaultAddress = deployments.evmPredictionMarket ?? undefined;
+	const defaultAddress = deployments[network].evmPredictionMarket ?? undefined;
+
+	function switchNetwork(preset: NetworkPreset) {
+		const endpoints = getNetworkPresetEndpoints(preset);
+		setWsUrl(endpoints.wsUrl);
+		setEthRpcUrl(endpoints.ethRpcUrl);
+	}
 
 	const [contractAddress, setContractAddress] = useState("");
 	const [selectedAccount, setSelectedAccount] = useState(0);
@@ -214,6 +229,32 @@ export default function MarketsPage() {
 
 			<div className="card space-y-4">
 				<div>
+					<label className="label">Network</label>
+					<div className="flex flex-wrap gap-2">
+						{(Object.keys(NETWORK_LABELS) as NetworkPreset[]).map((preset) => {
+							const active = network === preset;
+							return (
+								<button
+									key={preset}
+									onClick={() => switchNetwork(preset)}
+									className={`text-xs px-3 py-1.5 rounded-lg border transition-colors ${
+										active
+											? "border-accent-purple/40 bg-accent-purple/15 text-accent-purple"
+											: "border-white/[0.08] bg-white/[0.02] text-text-secondary hover:border-white/[0.15] hover:text-text-primary"
+									}`}
+								>
+									{NETWORK_LABELS[preset]}
+								</button>
+							);
+						})}
+					</div>
+					<p className="text-xs text-text-muted mt-1.5">
+						Current: {NETWORK_LABELS[network]} ·{" "}
+						<code className="font-mono">{ethRpcUrl}</code>
+					</p>
+				</div>
+
+				<div>
 					<label className="label">Contract Address</label>
 					<div className="flex gap-2">
 						<input
@@ -232,6 +273,17 @@ export default function MarketsPage() {
 							</button>
 						)}
 					</div>
+					{!defaultAddress && (
+						<p className="text-xs text-accent-yellow mt-1.5">
+							No {NETWORK_LABELS[network]} deployment recorded. Deploy with{" "}
+							<code className="font-mono">
+								{network === "local"
+									? "cd contracts/evm && npm run deploy:local"
+									: "make deploy-paseo"}
+							</code>
+							.
+						</p>
+					)}
 				</div>
 
 				<div>

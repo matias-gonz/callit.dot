@@ -1,7 +1,13 @@
 import ContractProofOfExistencePage from "../components/ContractProofOfExistencePage";
 import { deployments } from "../config/deployments";
+import { getNetworkKey } from "../config/network";
+import { useChainStore } from "../store/chainStore";
 
 export default function EvmContractPage() {
+	const ethRpcUrl = useChainStore((s) => s.ethRpcUrl);
+	const network = getNetworkKey(ethRpcUrl);
+	const defaultAddress = deployments[network].evm ?? undefined;
+
 	return (
 		<ContractProofOfExistencePage
 			title="EVM Proof of Existence (solc)"
@@ -21,7 +27,7 @@ export default function EvmContractPage() {
 			contractKind="evm"
 			accentColor="purple"
 			storageKey="evm-contract-address"
-			defaultAddress={deployments.evm ?? undefined}
+			defaultAddress={defaultAddress}
 		/>
 	);
 }

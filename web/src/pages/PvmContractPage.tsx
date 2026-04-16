@@ -1,7 +1,13 @@
 import ContractProofOfExistencePage from "../components/ContractProofOfExistencePage";
 import { deployments } from "../config/deployments";
+import { getNetworkKey } from "../config/network";
+import { useChainStore } from "../store/chainStore";
 
 export default function PvmContractPage() {
+	const ethRpcUrl = useChainStore((s) => s.ethRpcUrl);
+	const network = getNetworkKey(ethRpcUrl);
+	const defaultAddress = deployments[network].pvm ?? undefined;
+
 	return (
 		<ContractProofOfExistencePage
 			title="PVM Proof of Existence (resolc)"
@@ -18,7 +24,7 @@ export default function PvmContractPage() {
 			contractKind="pvm"
 			accentColor="green"
 			storageKey="pvm-contract-address"
-			defaultAddress={deployments.pvm ?? undefined}
+			defaultAddress={defaultAddress}
 		/>
 	);
 }

@@ -8,6 +8,14 @@ export const TESTNET_ETH_RPC_URL = "https://services.polkadothub-rpc.com/testnet
 
 export type NetworkPreset = "local" | "testnet";
 
+export function getNetworkKey(ethRpcUrl: string): NetworkPreset {
+	const lower = ethRpcUrl.toLowerCase();
+	if (lower.includes("127.0.0.1") || lower.includes("localhost")) {
+		return "local";
+	}
+	return "testnet";
+}
+
 function isLocalHost() {
 	if (typeof window === "undefined") {
 		return true;

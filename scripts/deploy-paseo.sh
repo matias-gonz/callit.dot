@@ -1,31 +1,18 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-echo "=== Deploy Contracts to Polkadot TestNet ==="
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+ROOT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
+
+echo "=== Deploy Contracts to Polkadot Hub TestNet (Paseo) ==="
 echo ""
-echo "Make sure you have set your private key:"
-echo "  cd contracts/evm && npx hardhat vars set PRIVATE_KEY"
-echo "  cd contracts/pvm && npx hardhat vars set PRIVATE_KEY"
+echo "Tip: this is a thin wrapper around 'make deploy-paseo'."
+echo "     Set PRIVATE_KEY via one of:"
+echo "       cd contracts/evm && npx hardhat vars set PRIVATE_KEY"
+echo "       cd contracts/pvm && npx hardhat vars set PRIVATE_KEY"
+echo "       export PRIVATE_KEY=0x..."
 echo ""
 echo "Get testnet tokens at: https://faucet.polkadot.io/"
 echo ""
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-ROOT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
-
-# Deploy EVM contract (solc)
-echo "[1/2] Deploying ProofOfExistence via EVM (solc)..."
-cd "$ROOT_DIR/contracts/evm"
-npm install
-npx hardhat compile
-npm run deploy:testnet
-
-# Deploy PVM contract (resolc)
-echo "[2/2] Deploying ProofOfExistence via PVM (resolc)..."
-cd "$ROOT_DIR/contracts/pvm"
-npm install
-npx hardhat compile
-npm run deploy:testnet
-
-echo ""
-echo "=== Deployment complete ==="
+exec make -C "$ROOT_DIR" deploy-paseo
