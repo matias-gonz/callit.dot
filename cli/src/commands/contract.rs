@@ -1,5 +1,5 @@
 use super::ProofOfExistence;
-use crate::commands::{hash_input, resolve_statement_signer, resolve_substrate_signer};
+use crate::commands::hash_input;
 use alloy::{
 	primitives::{Address, FixedBytes},
 	providers::ProviderBuilder,
@@ -36,19 +36,9 @@ pub enum ContractAction {
 		/// Path to a file (will be hashed with blake2b-256)
 		#[arg(long, group = "input")]
 		file: Option<String>,
-		/// Also upload the file to the Bulletin Chain (IPFS)
-		#[arg(long, requires = "file")]
-		upload: bool,
-		/// Also submit the file to the Statement Store
-		#[arg(long, requires = "file")]
-		statement_store: bool,
 		/// Signer: dev name (alice/bob/charlie) or 0x private key
 		#[arg(long, short, default_value = "alice")]
 		signer: String,
-		/// Optional Substrate signer for Bulletin Chain uploads.
-		/// Required when using --upload with a raw Ethereum private key.
-		#[arg(long)]
-		bulletin_signer: Option<String>,
 	},
 	/// Revoke a proof-of-existence claim
 	RevokeClaim {
@@ -81,27 +71,6 @@ pub fn resolve_signer(name: &str) -> Result<PrivateKeySigner, Box<dyn std::error
 		_ => return Err(format!("Unknown signer: {name}. Use alice, bob, or charlie.").into()),
 	};
 	Ok(key.parse()?)
-}
-
-fn resolve_bulletin_signer(
-	contract_signer: &str,
-	bulletin_signer: Option<&str>,
-) -> Result<subxt_signer::sr25519::Keypair, Box<dyn std::error::Error>> {
-	if let Some(input) = bulletin_signer {
-		return resolve_substrate_signer(input);
-	}
-
-	if matches!(
-		contract_signer.to_lowercase().as_str(),
-		"alice" | "bob" | "charlie" | "dave" | "eve" | "ferdie"
-	) {
-		return resolve_substrate_signer(contract_signer);
-	}
-
-	Err(
-        "--upload needs a Substrate signer for the Bulletin Chain. Re-run with --bulletin-signer alice (or a mnemonic / 0x secret seed)."
-            .into(),
-    )
 }
 
 fn parse_hash(hex_str: &str) -> Result<FixedBytes<32>, Box<dyn std::error::Error>> {
@@ -145,7 +114,7 @@ pub fn get_contract_address(
 pub async fn run(
 	action: ContractAction,
 	eth_rpc_url: &str,
-	ws_url: &str,
+	_ws_url: &str,
 ) -> Result<(), Box<dyn std::error::Error>> {
 	match action {
 		ContractAction::Info => {
@@ -162,31 +131,8 @@ pub async fn run(
 				println!("{:<10} {}", format!("{}:", capitalize(name)), signer.address());
 			}
 		},
-		ContractAction::CreateClaim {
-			contract_type,
-			hash,
-			file,
-			upload,
-			statement_store,
-			signer,
-			bulletin_signer,
-		} => {
-			let (hash_hex, file_bytes) = hash_input(hash, file.as_deref())?;
-
-			if upload {
-				let bytes = file_bytes.as_ref().ok_or("--upload requires --file")?;
-				let substrate_signer =
-					resolve_bulletin_signer(&signer, bulletin_signer.as_deref())?;
-				crate::commands::upload_to_bulletin(bytes, &substrate_signer).await?;
-			}
-
-			if statement_store {
-				let bytes = file_bytes.as_ref().ok_or("--statement-store requires --file")?;
-				let statement_signer_input = bulletin_signer.as_deref().unwrap_or(&signer);
-				let statement_signer = resolve_statement_signer(statement_signer_input)?;
-				crate::commands::submit_to_statement_store(ws_url, bytes, &statement_signer)
-					.await?;
-			}
+		ContractAction::CreateClaim { contract_type, hash, file, signer } => {
+			let (hash_hex, _file_bytes) = hash_input(hash, file.as_deref())?;
 
 			let deployments = load_deployments()?;
 			let contract_addr = get_contract_address(&deployments, &contract_type)?;

@@ -30,8 +30,7 @@ enum Commands {
 		#[command(subcommand)]
 		action: commands::contract::ContractAction,
 	},
-	/// All-in-one: hash a file, create a claim, and optionally upload to Bulletin Chain /
-	/// Statement Store
+	/// All-in-one: hash a file and create an on-chain claim via contract
 	Prove(commands::prove::ProveArgs),
 }
 
