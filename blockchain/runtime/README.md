@@ -24,10 +24,10 @@ A Cumulus-based parachain runtime built on `polkadot-sdk stable2512-3`. Compatib
 
 ```bash
 # Build the runtime (WASM + native)
-cargo build -p stack-template-runtime --release
+cargo build -p callit-runtime --release
 
 # Run tests
-cargo test -p stack-template-runtime
+cargo test -p callit-runtime
 
 # Run all workspace tests including benchmarks
 SKIP_PALLET_REVIVE_FIXTURES=1 cargo test --workspace --features runtime-benchmarks
@@ -35,7 +35,7 @@ SKIP_PALLET_REVIVE_FIXTURES=1 cargo test --workspace --features runtime-benchmar
 
 The compiled WASM blob is output to:
 ```
-target/release/wbuild/stack-template-runtime/stack_template_runtime.compact.compressed.wasm
+target/release/wbuild/callit-runtime/callit_runtime.compact.compressed.wasm
 ```
 
 See [`../README.md`](../README.md) for full blockchain build and run instructions.

@@ -6,8 +6,8 @@
 #
 # Usage:
 #   ./scripts/start-dev.sh            # generates blockchain/chain_spec.json
-#   cd blockchain && docker build -t stack-template-node .
-#   docker run --rm -p 9944:9944 stack-template-node \
+#   cd blockchain && docker build -t callit-node .
+#   docker run --rm -p 9944:9944 callit-node \
 #     --chain=/chain/chain_spec.json --alice --force-authoring \
 #     --dev-block-time=3000 --rpc-external --rpc-cors=all \
 #     --rpc-methods=unsafe --rpc-port=9944

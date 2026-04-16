@@ -4,7 +4,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/common.sh"
 
-echo "=== Polkadot Stack Template - Local Development ==="
+echo "=== Callit - Local Development ==="
 echo ""
 log_info "This is the fastest local loop for pallet/runtime work."
 log_info "Override ports with STACK_PORT_OFFSET or STACK_*_PORT environment variables."

@@ -2,17 +2,13 @@
   "version": 0,
   "descriptorPath": ".papi/descriptors",
   "entries": {
-    "stack_template": {
+    "callit": {
       "wsUrl": "ws://127.0.0.1:9944",
-      "metadata": ".papi/metadata/stack_template.scale",
-      "genesis": "0x4545454545454545454545454545454545454545454545454545454545454545",
-      "codeHash": "0x5d82548ee8362ca123514269ea6df6f1ad252e4f120516b810bcb2cb29957eb8"
+      "metadata": ".papi/metadata/callit.scale"
     },
     "bulletin": {
       "wsUrl": "wss://paseo-bulletin-rpc.polkadot.io",
-      "metadata": ".papi/metadata/bulletin.scale",
-      "genesis": "0x744960c32e3a3df5440e1ecd4d34096f1ce2230d7016a5ada8a765d5a622b4ea",
-      "codeHash": "0x1a82e5143be3211ded412b0368b486ce83bd41a80ec95eb267f6c204adda8365"
+      "metadata": ".papi/metadata/bulletin.scale"
     }
   }
 }

@@ -2486,6 +2486,35 @@ dependencies = [
 ]
 
 [[package]]
+name = "callit-cli"
+version = "0.1.0"
+dependencies = [
+ "alloy",
+ "blake2 0.10.6",
+ "clap",
+ "hex",
+ "serde",
+ "serde_json",
+ "subxt 0.38.1",
+ "tokio",
+]
+
+[[package]]
+name = "callit-runtime"
+version = "0.1.0"
+dependencies = [
+ "cumulus-pallet-parachain-system",
+ "hex-literal",
+ "log",
+ "parity-scale-codec",
+ "polkadot-sdk 2512.3.3",
+ "scale-info",
+ "serde_json",
+ "smallvec",
+ "substrate-wasm-builder",
+]
+
+[[package]]
 name = "camino"
 version = "1.2.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -17926,35 +17955,6 @@ name = "stable_deref_trait"
 version = "1.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6ce2be8dc25455e1f91df71bfa12ad37d7af1092ae736f3a6cd0e37bc7810596"
-
-[[package]]
-name = "stack-cli"
-version = "0.1.0"
-dependencies = [
- "alloy",
- "blake2 0.10.6",
- "clap",
- "hex",
- "serde",
- "serde_json",
- "subxt 0.38.1",
- "tokio",
-]
-
-[[package]]
-name = "stack-template-runtime"
-version = "0.1.0"
-dependencies = [
- "cumulus-pallet-parachain-system",
- "hex-literal",
- "log",
- "parity-scale-codec",
- "polkadot-sdk 2512.3.3",
- "scale-info",
- "serde_json",
- "smallvec",
- "substrate-wasm-builder",
-]
 
 [[package]]
 name = "staging-chain-spec-builder"

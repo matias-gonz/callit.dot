@@ -23,7 +23,7 @@ cleanup() {
 }
 trap cleanup EXIT INT TERM
 
-echo "=== Polkadot Stack Template - Full Local Stack ==="
+echo "=== Callit - Full Local Stack ==="
 echo ""
 log_info "This is the recommended one-command path."
 log_info "It uses Zombienet (relay chain + parachain) so all examples work,"
@@ -69,7 +69,7 @@ npm run deploy:local
 cd "$ROOT_DIR"
 
 echo "[7/8] Building CLI..."
-cargo build -p stack-cli --release
+cargo build -p callit-cli --release
 
 echo "[8/8] Starting frontend..."
 cd "$ROOT_DIR/web"

@@ -1,6 +1,6 @@
 [package]
-name = "stack-cli"
-description = "CLI tool for interacting with the Polkadot Stack Template chain via subxt and alloy."
+name = "callit-cli"
+description = "CLI tool for interacting with the Callit chain via subxt and alloy."
 version = "0.1.0"
 license.workspace = true
 authors.workspace = true

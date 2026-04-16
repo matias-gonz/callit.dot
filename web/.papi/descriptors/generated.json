@@ -1,1 +1,1 @@
-{"cliVersion":"0.18.1","whitelist":null,"chains":{"stack_template":"0xbd149291484752c7c2a0e8b58fa32c66","bulletin":"0x5c7968c489c7a9fdf8a9e25bec077512"},"contracts":{"ink":{},"sol":{}}}
+{"cliVersion":"0.18.1","whitelist":null,"chains":{"callit":"0xfb28b9cfce0c5b5d38900b376264ac45","bulletin":"0x5c7968c489c7a9fdf8a9e25bec077512"},"contracts":{"ink":{},"sol":{}}}

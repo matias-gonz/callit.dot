@@ -5,7 +5,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 source "$SCRIPT_DIR/common.sh"
 
-echo "=== Polkadot Stack Template - Frontend ==="
+echo "=== Callit - Frontend ==="
 echo ""
 log_info "This starts only the web app."
 log_info "Override ports with STACK_PORT_OFFSET or STACK_*_PORT environment variables."

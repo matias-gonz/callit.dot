@@ -9,7 +9,7 @@ on:
         # TODO: Change this to your own unique .dot domain name!
         # Lowercase letters, digits, and hyphens only. Cannot start/end with hyphen.
         # Name must be 9+ letters followed by exactly 2 digits (e.g. "my-cool-project42").
-        default: 'polkadot-stack-template00'
+        default: 'callit00'
       skip-cache:
         description: 'Skip deployment cache and force redeploy'
         type: boolean

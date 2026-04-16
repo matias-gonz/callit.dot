@@ -58,7 +58,7 @@ You can also deploy to IPFS locally without CI:
 # Install web3.storage CLI (one-time)
 npm install -g @web3-storage/w3cli
 w3 login your@email.com
-w3 space create polkadot-stack-template
+w3 space create callit
 
 # Deploy
 ./scripts/deploy-frontend.sh
@@ -189,8 +189,8 @@ For **deploying a pre-built image** (e.g. to a cloud server):
 
 ```bash
 ./scripts/start-dev.sh                              # generates blockchain/chain_spec.json
-cd blockchain && docker build -t stack-template-node .  # seconds — just copies chain spec
-docker push your-registry/stack-template-node        # lightweight ~50MB image
+cd blockchain && docker build -t callit-node .  # seconds — just copies chain spec
+docker push your-registry/callit-node        # lightweight ~50MB image
 ```
 
 [`blockchain/Dockerfile`](../blockchain/Dockerfile) packages a pre-generated chain spec into the polkadot-omni-node base image without any Rust compilation.
@@ -238,10 +238,10 @@ The allowance is temporary and usually expires around 100,000 blocks later. Use 
 **CLI:**
 ```bash
 # Hash a file and upload to Bulletin Chain, then claim on pallet
-cargo run -p stack-cli -- pallet create-claim --file ./document.pdf --upload
+cargo run -p callit-cli -- pallet create-claim --file ./document.pdf --upload
 
 # Same for contracts
-cargo run -p stack-cli -- contract create-claim evm --file ./document.pdf --upload
+cargo run -p callit-cli -- contract create-claim evm --file ./document.pdf --upload
 ```
 
 The CLI connects to the Bulletin Chain via subxt and submits `TransactionStorage.store()`.
@@ -280,29 +280,29 @@ Default is `alice` if omitted.
 
 ```bash
 # Chain info
-cargo run -p stack-cli -- chain info
+cargo run -p callit-cli -- chain info
 
 # Pallet interaction (via Substrate RPC)
-cargo run -p stack-cli -- pallet create-claim 0x0123...def                  # direct hash
-cargo run -p stack-cli -- pallet create-claim --file ./doc.pdf              # hash a file
-cargo run -p stack-cli -- pallet create-claim --file ./doc.pdf --upload     # hash + IPFS upload
-cargo run -p stack-cli -- pallet create-claim --file ./doc.pdf -s bob       # custom signer
-cargo run -p stack-cli -- pallet get-claim 0x0123...
-cargo run -p stack-cli -- pallet list-claims
-cargo run -p stack-cli -- pallet revoke-claim 0x0123... -s alice
+cargo run -p callit-cli -- pallet create-claim 0x0123...def                  # direct hash
+cargo run -p callit-cli -- pallet create-claim --file ./doc.pdf              # hash a file
+cargo run -p callit-cli -- pallet create-claim --file ./doc.pdf --upload     # hash + IPFS upload
+cargo run -p callit-cli -- pallet create-claim --file ./doc.pdf -s bob       # custom signer
+cargo run -p callit-cli -- pallet get-claim 0x0123...
+cargo run -p callit-cli -- pallet list-claims
+cargo run -p callit-cli -- pallet revoke-claim 0x0123... -s alice
 
 # Contract interaction (via eth-rpc)
-cargo run -p stack-cli -- contract info
-cargo run -p stack-cli -- contract create-claim evm 0x0123...               # direct hash
-cargo run -p stack-cli -- contract create-claim evm --file ./doc.pdf        # hash a file
-cargo run -p stack-cli -- contract create-claim pvm --file ./doc.pdf --upload -s bob
-cargo run -p stack-cli -- contract create-claim evm --file ./doc.pdf --upload --signer 0x... --bulletin-signer alice
-cargo run -p stack-cli -- contract get-claim evm 0x0123...
-cargo run -p stack-cli -- contract revoke-claim pvm 0x0123... -s bob
+cargo run -p callit-cli -- contract info
+cargo run -p callit-cli -- contract create-claim evm 0x0123...               # direct hash
+cargo run -p callit-cli -- contract create-claim evm --file ./doc.pdf        # hash a file
+cargo run -p callit-cli -- contract create-claim pvm --file ./doc.pdf --upload -s bob
+cargo run -p callit-cli -- contract create-claim evm --file ./doc.pdf --upload --signer 0x... --bulletin-signer alice
+cargo run -p callit-cli -- contract get-claim evm 0x0123...
+cargo run -p callit-cli -- contract revoke-claim pvm 0x0123... -s bob
 ```
 
 Use `--url` and `--eth-rpc-url` flags to target different endpoints:
 
 ```bash
-cargo run -p stack-cli -- --url wss://your-node:9944 --eth-rpc-url https://your-eth-rpc:8545 contract get-claim evm 0x0123...
+cargo run -p callit-cli -- --url wss://your-node:9944 --eth-rpc-url https://your-eth-rpc:8545 contract get-claim evm 0x0123...
 ```

@@ -4,7 +4,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/common.sh"
 
-echo "=== Polkadot Stack Template - Local Zombienet ==="
+echo "=== Callit - Local Zombienet ==="
 echo ""
 log_info "This starts just the relay-backed network with no contracts or frontend."
 log_info "Override ports with STACK_PORT_OFFSET or STACK_*_PORT environment variables."

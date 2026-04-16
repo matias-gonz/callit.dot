@@ -1,4 +1,4 @@
-# Polkadot Stack Template
+# Callit
 
 A developer starter template demonstrating the full Polkadot technology stack through a **Proof of Existence** system — the same concept implemented as a Substrate pallet, a Solidity EVM contract, and a Solidity PVM contract. Drop a file, claim its hash on-chain, and optionally upload it to IPFS via the Bulletin Chain.
 
@@ -100,8 +100,8 @@ cargo test -p pallet-template
 SKIP_PALLET_REVIVE_FIXTURES=1 cargo test --workspace --features runtime-benchmarks
 
 # Statement Store runtime + CLI coverage
-cargo test -p stack-template-runtime
-cargo test -p stack-cli
+cargo test -p callit-runtime
+cargo test -p callit-cli
 
 # Relay-backed Statement Store smoke test
 ./scripts/test-statement-store-smoke.sh

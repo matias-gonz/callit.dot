@@ -3,7 +3,7 @@ import { useChainStore } from "../store/chainStore";
 import { devAccounts } from "../hooks/useAccount";
 import { evmDevAccounts } from "../config/evm";
 import { getClient } from "../hooks/useChain";
-import { stack_template } from "@polkadot-api/descriptors";
+import { callit } from "@polkadot-api/descriptors";
 import { formatDispatchError } from "../utils/format";
 import {
 	getInjectedExtensions,
@@ -124,7 +124,7 @@ export default function AccountsPage() {
 		if (!connected || allAddresses.length === 0) return;
 		try {
 			const client = getClient(wsUrl);
-			const api = client.getTypedApi(stack_template);
+			const api = client.getTypedApi(callit);
 			const infos: Record<string, AccountInfo> = {};
 			for (const addr of allAddresses) {
 				try {
@@ -246,7 +246,7 @@ export default function AccountsPage() {
 			const amount = BigInt(fundAmount) * 1_000_000_000_000n;
 			setFundStatus(`Funding ${accountName}...`);
 			const client = getClient(wsUrl);
-			const api = client.getTypedApi(stack_template);
+			const api = client.getTypedApi(callit);
 			const aliceSigner = devAccounts[0].signer;
 			const tx = api.tx.Sudo.sudo({
 				call: api.tx.Balances.force_set_balance({

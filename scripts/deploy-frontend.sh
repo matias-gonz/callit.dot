@@ -20,7 +20,7 @@ if ! command -v w3 &>/dev/null; then
     echo "[2/3] w3 CLI not found. Install it to deploy to IPFS:"
     echo "  npm install -g @web3-storage/w3cli"
     echo "  w3 login your@email.com"
-    echo "  w3 space create polkadot-stack-template"
+    echo "  w3 space create callit"
     echo ""
     echo "Then re-run this script."
     echo ""

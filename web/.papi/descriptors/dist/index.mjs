@@ -13,22 +13,22 @@ var toBinary = (base64) => {
   return bytes;
 };
 
-// .papi/descriptors/src/stack_template.ts
-var descriptorValues = import("./descriptors-LGGPLAR4.mjs").then((module) => module["Stack_template"]);
+// .papi/descriptors/src/callit.ts
+var descriptorValues = import("./descriptors-UPZLQ5DQ.mjs").then((module) => module["Callit"]);
 var metadataTypes = import("./metadataTypes-IELQNSXH.mjs").then(
   (module) => toBinary("default" in module ? module.default : module)
 );
 var asset = {};
 var extensions = {};
-var getMetadata = () => import("./stack_template_metadata-623LFFBH.mjs").then(
+var getMetadata = () => import("./callit_metadata-CVDSKSTO.mjs").then(
   (module) => toBinary("default" in module ? module.default : module)
 );
 var genesis = "0x4545454545454545454545454545454545454545454545454545454545454545";
 var _allDescriptors = { descriptors: descriptorValues, metadataTypes, asset, extensions, getMetadata, genesis };
-var stack_template_default = _allDescriptors;
+var callit_default = _allDescriptors;
 
 // .papi/descriptors/src/bulletin.ts
-var descriptorValues2 = import("./descriptors-LGGPLAR4.mjs").then((module) => module["Bulletin"]);
+var descriptorValues2 = import("./descriptors-UPZLQ5DQ.mjs").then((module) => module["Bulletin"]);
 var metadataTypes2 = import("./metadataTypes-IELQNSXH.mjs").then(
   (module) => toBinary("default" in module ? module.default : module)
 );
@@ -95,7 +95,7 @@ var XcmVersionedAsset = _Enum;
 
 // .papi/descriptors/src/index.ts
 var metadatas = {
-  ["0x7d0b324727b58f10678a195600d672e70a26f18499149a764a48ce9c0eefd547"]: stack_template_default,
+  ["0x447d4444742a8cc86e05b73f06ca1e64a9bee0edcaaf9ef6e934cfe6745cac72"]: callit_default,
   ["0x1a82e5143be3211ded412b0368b486ce83bd41a80ec95eb267f6c204adda8365"]: bulletin_default
 };
 var getMetadata3 = async (codeHash) => {
@@ -156,6 +156,6 @@ export {
   XcmVersionedLocation,
   XcmVersionedXcm,
   bulletin_default as bulletin,
-  getMetadata3 as getMetadata,
-  stack_template_default as stack_template
+  callit_default as callit,
+  getMetadata3 as getMetadata
 };

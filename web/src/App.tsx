@@ -42,7 +42,7 @@ export default function App() {
 							</svg>
 						</div>
 						<span className="text-base font-semibold text-text-primary font-display tracking-tight">
-							Polkadot Stack
+							Callit
 						</span>
 					</Link>
 

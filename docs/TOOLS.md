@@ -1,4 +1,4 @@
-# Polkadot Stack Tools
+# Callit Tools
 
 This document describes all the parts of the Polkadot technology stack exposed by this template.
 
@@ -36,7 +36,7 @@ The lighter solo-node tools (`start-dev.sh` and Docker Compose) use omni-node de
 
 The current template integration is active in all three local entry points:
 
-- CLI: signed submission and dump flows via `stack-cli chain statement-submit` / `statement-dump`
+- CLI: signed submission and dump flows via `callit-cli chain statement-submit` / `statement-dump`
 - Frontend: optional Statement Store submission on the pallet and contract claim pages
 - Scripts: [`scripts/test-statement-store-smoke.sh`](../scripts/test-statement-store-smoke.sh) runs a relay-backed local submission and dump check
 
@@ -121,7 +121,7 @@ The JavaScript/TypeScript library for interacting with Substrate chains. PAPI pr
 ```typescript
 // Connect
 const client = createClient(withPolkadotSdkCompat(getWsProvider(wsUrl)));
-const api = client.getTypedApi(stack_template);
+const api = client.getTypedApi(callit);
 
 // Query storage
 const entries = await api.query.TemplatePallet.Claims.getEntries();

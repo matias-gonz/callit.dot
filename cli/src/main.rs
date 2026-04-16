@@ -3,8 +3,8 @@ use clap::{Parser, Subcommand};
 mod commands;
 
 #[derive(Parser)]
-#[command(name = "stack-cli")]
-#[command(about = "CLI for interacting with the Polkadot Stack Template chain")]
+#[command(name = "callit-cli")]
+#[command(about = "CLI for interacting with the Callit chain")]
 struct Cli {
 	/// WebSocket RPC endpoint URL
 	#[arg(long, env = "SUBSTRATE_RPC_WS", default_value = "ws://127.0.0.1:9944")]

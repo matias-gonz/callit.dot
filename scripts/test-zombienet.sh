@@ -18,7 +18,7 @@ cleanup() {
 trap cleanup EXIT INT TERM
 
 TMP_DIR="$(mktemp -d)"
-CLI="cargo run -q -p stack-cli --"
+CLI="cargo run -q -p callit-cli --"
 WS_URL="$SUBSTRATE_RPC_WS"
 ETH_URL="$ETH_RPC_HTTP"
 
@@ -47,7 +47,7 @@ check() {
     fi
 }
 
-echo "=== Polkadot Stack Template - Zombienet E2E Test ==="
+echo "=== Callit - Zombienet E2E Test ==="
 echo ""
 log_info "Testing against $WS_URL and $ETH_URL"
 echo ""
@@ -59,7 +59,7 @@ validate_full_external_toolchain
 # -----------------------------------------------------------------------
 echo "[1/7] Building runtime and CLI..."
 build_runtime
-cargo build -p stack-cli --release
+cargo build -p callit-cli --release
 
 echo "[2/7] Generating chain spec..."
 generate_chain_spec

@@ -66,9 +66,8 @@ export default function HomePage() {
 			{/* Hero */}
 			<div className="space-y-3">
 				<h1 className="page-title">
-					Polkadot Stack{" "}
 					<span className="bg-gradient-to-r from-polka-400 to-polka-600 bg-clip-text text-transparent">
-						Template
+						Callit
 					</span>
 				</h1>
 				<p className="text-text-secondary text-base leading-relaxed max-w-2xl">

@@ -3488,9 +3488,9 @@ type IRuntimeCalls = {
         new_balance_with_dust: RuntimeDescriptor<[balance: Anonymize<I4totqt881mlti>], Anonymize<I512dtcl0pn07c>>;
     };
 };
-export type Stack_templateDispatchError = Anonymize<Iuu4350la414n>;
+export type CallitDispatchError = Anonymize<Iuu4350la414n>;
 type IAsset = PlainDescriptor<void>;
-export type Stack_templateExtensions = {};
+export type CallitExtensions = {};
 type PalletsTypedef = {
     __storage: IStorage;
     __tx: ICalls;
@@ -3499,27 +3499,27 @@ type PalletsTypedef = {
     __const: IConstants;
     __view: IViewFns;
 };
-export type Stack_template = {
+export type Callit = {
     descriptors: {
         pallets: PalletsTypedef;
         apis: IRuntimeCalls;
     } & Promise<any>;
     metadataTypes: Promise<Uint8Array>;
     asset: IAsset;
-    extensions: Stack_templateExtensions;
+    extensions: CallitExtensions;
     getMetadata: () => Promise<Uint8Array>;
     genesis: string | undefined;
 };
-declare const _allDescriptors: Stack_template;
+declare const _allDescriptors: Callit;
 export default _allDescriptors;
-export type Stack_templateApis = ApisFromDef<IRuntimeCalls>;
-export type Stack_templateQueries = QueryFromPalletsDef<PalletsTypedef>;
-export type Stack_templateCalls = TxFromPalletsDef<PalletsTypedef>;
-export type Stack_templateEvents = EventsFromPalletsDef<PalletsTypedef>;
-export type Stack_templateErrors = ErrorsFromPalletsDef<PalletsTypedef>;
-export type Stack_templateConstants = ConstFromPalletsDef<PalletsTypedef>;
-export type Stack_templateViewFns = ViewFnsFromPalletsDef<PalletsTypedef>;
-export type Stack_templateCallData = Anonymize<I1afpgc0km1902> & {
+export type CallitApis = ApisFromDef<IRuntimeCalls>;
+export type CallitQueries = QueryFromPalletsDef<PalletsTypedef>;
+export type CallitCalls = TxFromPalletsDef<PalletsTypedef>;
+export type CallitEvents = EventsFromPalletsDef<PalletsTypedef>;
+export type CallitErrors = ErrorsFromPalletsDef<PalletsTypedef>;
+export type CallitConstants = ConstFromPalletsDef<PalletsTypedef>;
+export type CallitViewFns = ViewFnsFromPalletsDef<PalletsTypedef>;
+export type CallitCallData = Anonymize<I1afpgc0km1902> & {
     value: {
         type: string;
     };
@@ -3615,7 +3615,7 @@ type AllInteractions = {
         ReviveApi: ['eth_block', 'eth_block_hash', 'eth_receipt_data', 'block_gas_limit', 'balance', 'gas_price', 'nonce', 'call', 'instantiate', 'eth_transact', 'eth_transact_with_config', 'upload_code', 'get_storage', 'get_storage_var_key', 'trace_block', 'trace_tx', 'trace_call', 'block_author', 'address', 'account_id', 'runtime_pallets_address', 'code', 'new_balance_with_dust'];
     };
 };
-export type Stack_templateWhitelistEntry = PalletKey | `query.${NestedKey<AllInteractions['storage']>}` | `tx.${NestedKey<AllInteractions['tx']>}` | `event.${NestedKey<AllInteractions['events']>}` | `error.${NestedKey<AllInteractions['errors']>}` | `const.${NestedKey<AllInteractions['constants']>}` | `view.${NestedKey<AllInteractions['viewFns']>}` | `api.${NestedKey<AllInteractions['apis']>}`;
+export type CallitWhitelistEntry = PalletKey | `query.${NestedKey<AllInteractions['storage']>}` | `tx.${NestedKey<AllInteractions['tx']>}` | `event.${NestedKey<AllInteractions['events']>}` | `error.${NestedKey<AllInteractions['errors']>}` | `const.${NestedKey<AllInteractions['constants']>}` | `view.${NestedKey<AllInteractions['viewFns']>}` | `api.${NestedKey<AllInteractions['apis']>}`;
 type PalletKey = `*.${({
     [K in keyof AllInteractions]: K extends 'apis' ? never : keyof AllInteractions[K];
 })[keyof AllInteractions]}`;

@@ -1,6 +1,6 @@
 # Installation Guide
 
-This document covers all prerequisites and setup steps needed to build and run the Polkadot Stack Template.
+This document covers all prerequisites and setup steps needed to build and run the Callit.
 
 ## Docker Quick Start (no Rust required)
 
@@ -142,12 +142,12 @@ Dependencies are installed automatically via `npm install` in each contract dire
 ### Build the Runtime
 
 ```bash
-cargo build -p stack-template-runtime --release
+cargo build -p callit-runtime --release
 ```
 
 This compiles the parachain runtime to both native and WASM. The WASM blob is output to:
 ```
-target/release/wbuild/stack-template-runtime/stack_template_runtime.compact.compressed.wasm
+target/release/wbuild/callit-runtime/callit_runtime.compact.compressed.wasm
 ```
 
 ### Build the Pallet (check only)
@@ -266,13 +266,13 @@ The repo ships two local modes:
 ### CLI
 
 ```bash
-cargo run -p stack-cli -- chain info
-cargo run -p stack-cli -- pallet create-claim --file ./README.md
-cargo run -p stack-cli -- pallet list-claims
-cargo run -p stack-cli -- contract create-claim evm --file ./README.md
+cargo run -p callit-cli -- chain info
+cargo run -p callit-cli -- pallet create-claim --file ./README.md
+cargo run -p callit-cli -- pallet list-claims
+cargo run -p callit-cli -- contract create-claim evm --file ./README.md
 ```
 
-The CLI is part of the Rust workspace, so `cargo run -p stack-cli -- ...` works from the repo root.
+The CLI is part of the Rust workspace, so `cargo run -p callit-cli -- ...` works from the repo root.
 
 When you launch the local stack through the scripts, the CLI also picks up `SUBSTRATE_RPC_WS` and `ETH_RPC_HTTP` from the environment automatically. You can still pass `--url` and `--eth-rpc-url` explicitly when you want to target another chain.
 
@@ -324,11 +324,11 @@ The chain spec is missing or empty. Regenerate it:
 ```bash
 chain-spec-builder \
     -c blockchain/chain_spec.json \
-    --chain-name "Polkadot Stack Template" \
-    --chain-id "polkadot-stack-template" \
+    --chain-name "Callit" \
+    --chain-id "callit" \
     create -t development \
     --relay-chain rococo-local --para-id 1000 \
-    --runtime target/release/wbuild/stack-template-runtime/stack_template_runtime.compact.compressed.wasm \
+    --runtime target/release/wbuild/callit-runtime/callit_runtime.compact.compressed.wasm \
     named-preset development
 ```
 

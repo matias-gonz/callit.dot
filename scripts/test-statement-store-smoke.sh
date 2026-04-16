@@ -37,7 +37,7 @@ start_zombienet_background
 wait_for_substrate_rpc
 
 echo "[4/6] Verifying the store starts empty..."
-EMPTY_DUMP="$(cargo run -q -p stack-cli -- --url "$WS_URL" chain statement-dump)"
+EMPTY_DUMP="$(cargo run -q -p callit-cli -- --url "$WS_URL" chain statement-dump)"
 if ! grep -q "No statements in the store." <<<"$EMPTY_DUMP"; then
   echo "Expected an empty store, got:"
   echo "$EMPTY_DUMP"
@@ -49,7 +49,7 @@ cat >"$TEST_FILE" <<'EOF'
 statement-store-smoke
 EOF
 
-SUBMIT_OUTPUT="$(cargo run -q -p stack-cli -- --url "$WS_URL" chain statement-submit --file "$TEST_FILE" --signer alice)"
+SUBMIT_OUTPUT="$(cargo run -q -p callit-cli -- --url "$WS_URL" chain statement-submit --file "$TEST_FILE" --signer alice)"
 STATEMENT_HASH="$(
   grep -E "Statement hash:|Hash:" <<<"$SUBMIT_OUTPUT" | awk '{print $NF}'
 )"
@@ -61,7 +61,7 @@ if [[ -z "$STATEMENT_HASH" ]]; then
 fi
 
 echo "[6/6] Dumping statements and checking the submitted hash is present..."
-DUMP_OUTPUT="$(cargo run -q -p stack-cli -- --url "$WS_URL" chain statement-dump)"
+DUMP_OUTPUT="$(cargo run -q -p callit-cli -- --url "$WS_URL" chain statement-dump)"
 
 if ! grep -q "$STATEMENT_HASH" <<<"$DUMP_OUTPUT"; then
   echo "Submitted statement hash $STATEMENT_HASH not found in dump:"

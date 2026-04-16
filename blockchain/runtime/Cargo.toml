@@ -1,6 +1,6 @@
 [package]
-name = "stack-template-runtime"
-description = "A parachain runtime template for the Polkadot Stack, with EVM and PVM contract support."
+name = "callit-runtime"
+description = "Callit parachain runtime with EVM and PVM contract support."
 version = "0.1.0"
 license.workspace = true
 authors.workspace = true

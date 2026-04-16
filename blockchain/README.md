@@ -16,7 +16,7 @@ A Polkadot SDK parachain built with FRAME and Cumulus, compatible with `polkadot
 
 ```bash
 # Build the runtime
-cargo build -p stack-template-runtime --release
+cargo build -p callit-runtime --release
 
 # Pallet unit tests
 cargo test -p pallet-template

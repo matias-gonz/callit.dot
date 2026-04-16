@@ -1,6 +1,6 @@
 # CLI
 
-This directory contains `stack-cli`, the Rust command-line tool for interacting with the template chain through:
+This directory contains `callit-cli`, the Rust command-line tool for interacting with the template chain through:
 
 - [subxt](https://github.com/parity-tech/subxt) for Substrate RPC
 - [alloy](https://alloy.rs) for Ethereum-compatible contract calls
@@ -10,7 +10,7 @@ This directory contains `stack-cli`, the Rust command-line tool for interacting 
 From the repo root:
 
 ```bash
-cargo run -p stack-cli -- --help
+cargo run -p callit-cli -- --help
 ```
 
 ## Command Groups
@@ -25,19 +25,19 @@ From the repo root:
 
 ```bash
 # Chain info
-cargo run -p stack-cli -- chain info
+cargo run -p callit-cli -- chain info
 
 # Pallet interaction
-cargo run -p stack-cli -- pallet create-claim --file ./README.md
-cargo run -p stack-cli -- pallet list-claims
+cargo run -p callit-cli -- pallet create-claim --file ./README.md
+cargo run -p callit-cli -- pallet list-claims
 
 # Statement Store
-cargo run -p stack-cli -- chain statement-submit --file ./README.md --signer alice
-cargo run -p stack-cli -- chain statement-dump
+cargo run -p callit-cli -- chain statement-submit --file ./README.md --signer alice
+cargo run -p callit-cli -- chain statement-dump
 
 # Contract interaction
-cargo run -p stack-cli -- contract create-claim evm --file ./README.md
-cargo run -p stack-cli -- contract info
+cargo run -p callit-cli -- contract create-claim evm --file ./README.md
+cargo run -p callit-cli -- contract info
 ```
 
 ## Signers
