@@ -57,13 +57,22 @@ echo "[5/8] Starting eth-rpc adapter..."
 start_eth_rpc_background
 wait_for_eth_rpc
 
-echo "[6/8] Deploying contracts..."
-echo "  Deploying ProofOfExistence via EVM (solc)..."
+echo "[6/8] Testing and deploying contracts..."
+echo "  Running EVM contract tests (solc)..."
 cd "$ROOT_DIR/contracts/evm"
+npm test --silent
+
+echo "  Deploying EVM contracts (ProofOfExistence, PredictionMarket)..."
 npm run deploy:local
 
-echo "  Deploying ProofOfExistence via PVM (resolc)..."
+echo "  Smoke-testing PredictionMarket against live chain..."
+npx hardhat run scripts/smoke-market.ts --network local
+
+echo "  Running PVM contract tests (resolc)..."
 cd "$ROOT_DIR/contracts/pvm"
+npm test --silent
+
+echo "  Deploying PVM contract (ProofOfExistence)..."
 npm run deploy:local
 
 cd "$ROOT_DIR"

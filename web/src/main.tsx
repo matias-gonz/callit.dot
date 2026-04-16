@@ -5,6 +5,7 @@ import App from "./App";
 import "./index.css";
 
 const HomePage = lazy(() => import("./pages/HomePage"));
+const MarketsPage = lazy(() => import("./pages/MarketsPage"));
 const EvmContractPage = lazy(() => import("./pages/EvmContractPage"));
 const PvmContractPage = lazy(() => import("./pages/PvmContractPage"));
 const AccountsPage = lazy(() => import("./pages/AccountsPage"));
@@ -26,6 +27,14 @@ createRoot(document.getElementById("root")!).render(
 						element={
 							<Suspense fallback={routeFallback}>
 								<HomePage />
+							</Suspense>
+						}
+					/>
+					<Route
+						path="markets"
+						element={
+							<Suspense fallback={routeFallback}>
+								<MarketsPage />
 							</Suspense>
 						}
 					/>

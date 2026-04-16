@@ -157,6 +157,15 @@ export default function HomePage() {
 			{/* Feature cards */}
 			<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
 				<FeatureCard
+					title="Prediction Markets"
+					description="Create binary YES/NO markets via the PredictionMarket contract (EVM). Anyone can create a market and, after the deadline, anyone can resolve it by posting a bond."
+					link="/markets"
+					accentColor="text-accent-purple"
+					borderColor="hover:border-accent-purple/20"
+					available={pallets.revive}
+					unavailableReason="pallet-revive not found in connected runtime"
+				/>
+				<FeatureCard
 					title="EVM PoE (solc)"
 					description="Proof of existence via Solidity compiled with solc, deployed to the EVM backend."
 					link="/evm"

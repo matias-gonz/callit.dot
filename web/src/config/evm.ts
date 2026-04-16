@@ -44,6 +44,59 @@ export const proofOfExistenceAbi = [
 	},
 ] as const;
 
+export const predictionMarketAbi = [
+	{
+		type: "function",
+		name: "createMarket",
+		inputs: [
+			{ name: "question", type: "string" },
+			{ name: "resolutionTimestamp", type: "uint256" },
+		],
+		outputs: [{ name: "marketId", type: "uint256" }],
+		stateMutability: "nonpayable",
+	},
+	{
+		type: "function",
+		name: "getMarket",
+		inputs: [{ name: "marketId", type: "uint256" }],
+		outputs: [
+			{ name: "creator", type: "address" },
+			{ name: "question", type: "string" },
+			{ name: "resolutionTimestamp", type: "uint256" },
+			{ name: "state", type: "uint8" },
+		],
+		stateMutability: "view",
+	},
+	{
+		type: "function",
+		name: "getMarketCount",
+		inputs: [],
+		outputs: [{ name: "", type: "uint256" }],
+		stateMutability: "view",
+	},
+	{
+		type: "event",
+		name: "MarketCreated",
+		inputs: [
+			{ name: "marketId", type: "uint256", indexed: true },
+			{ name: "creator", type: "address", indexed: true },
+			{ name: "question", type: "string", indexed: false },
+			{ name: "resolutionTimestamp", type: "uint256", indexed: false },
+		],
+		anonymous: false,
+	},
+] as const;
+
+export const marketStateLabels = [
+	"Open",
+	"Resolving",
+	"Proposed",
+	"Disputed",
+	"Finalized",
+] as const;
+
+export type MarketState = (typeof marketStateLabels)[number];
+
 // Well-known Substrate dev account Ethereum private keys.
 // These are PUBLIC test keys from Substrate dev mnemonics — NEVER use for real funds.
 export const evmDevAccounts = [
