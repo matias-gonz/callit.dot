@@ -24,8 +24,7 @@ async function buildClients(): Promise<{
 	deployerAddress: `0x${string}`;
 }> {
 	const netCfg = hre.network.config as { url?: string; accounts?: unknown };
-	const url =
-		typeof netCfg.url === "string" ? netCfg.url : process.env.ETH_RPC_HTTP || "";
+	const url = typeof netCfg.url === "string" ? netCfg.url : process.env.ETH_RPC_HTTP || "";
 	if (!url) {
 		throw new Error(
 			`No RPC URL for network '${hre.network.name}'. Configure it in hardhat.config.ts.`,
@@ -73,11 +72,9 @@ async function deployContract(
 	constructorData?: `0x${string}`,
 ): Promise<string> {
 	const artifact = await hre.artifacts.readArtifact(name);
-	const bytecode = (
-		constructorData
-			? ((artifact.bytecode + constructorData.slice(2)) as `0x${string}`)
-			: (artifact.bytecode as `0x${string}`)
-	);
+	const bytecode = constructorData
+		? ((artifact.bytecode + constructorData.slice(2)) as `0x${string}`)
+		: (artifact.bytecode as `0x${string}`);
 
 	const hash = await walletClient.deployContract({
 		account: walletClient.account!,
@@ -112,11 +109,16 @@ async function main() {
 
 	console.log("Deploying PredictionMarket (PVM/resolc)...");
 	console.log(`  bond: ${RESOLUTION_BOND} wei  window: ${DISPUTE_WINDOW}s`);
-	const predictionMarketArgs = encodeAbiParameters(
-		parseAbiParameters("uint256, uint256"),
-		[RESOLUTION_BOND, DISPUTE_WINDOW],
+	const predictionMarketArgs = encodeAbiParameters(parseAbiParameters("uint256, uint256"), [
+		RESOLUTION_BOND,
+		DISPUTE_WINDOW,
+	]);
+	const pmAddress = await deployContract(
+		"PredictionMarket",
+		walletClient,
+		publicClient,
+		predictionMarketArgs,
 	);
-	const pmAddress = await deployContract("PredictionMarket", walletClient, publicClient, predictionMarketArgs);
 	console.log(`  → ${pmAddress}`);
 	data = updateContract(data, networkKey, "evmPredictionMarket", pmAddress);
 

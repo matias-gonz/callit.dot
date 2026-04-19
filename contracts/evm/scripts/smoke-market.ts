@@ -1,10 +1,4 @@
-import {
-	createPublicClient,
-	createWalletClient,
-	http,
-	defineChain,
-	parseEventLogs,
-} from "viem";
+import { createPublicClient, createWalletClient, http, defineChain, parseEventLogs } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { networkKeyForChainId, readDeployments } from "./deployments";
 
@@ -133,12 +127,14 @@ async function main() {
 	console.log(`Markets after: ${after}`);
 	if (after !== before + 1n) throw new Error(`count did not increment`);
 
-	const [creator, storedQ, storedTs, state, , yesPool, noPool] = (await publicClient.readContract({
-		address,
-		abi,
-		functionName: "getMarket",
-		args: [args.marketId],
-	})) as [string, string, bigint, number, boolean, bigint, bigint];
+	const [creator, storedQ, storedTs, state, , yesPool, noPool] = (await publicClient.readContract(
+		{
+			address,
+			abi,
+			functionName: "getMarket",
+			args: [args.marketId],
+		},
+	)) as [string, string, bigint, number, boolean, bigint, bigint];
 	console.log(
 		`getMarket(${args.marketId}): creator=${creator} q="${storedQ}" ts=${storedTs} state=${state} yes=${yesPool} no=${noPool}`,
 	);

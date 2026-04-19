@@ -181,7 +181,10 @@ describe("PredictionMarket (EVM)", function () {
 			await market.write.buyShares([0n, true], { value: parseEther("1") });
 			await market.write.buyShares([0n, true], { value: parseEther("0.5") });
 
-			const [yesDeposit] = (await market.read.getUserPosition([0n, owner.account.address])) as PositionTuple;
+			const [yesDeposit] = (await market.read.getUserPosition([
+				0n,
+				owner.account.address,
+			])) as PositionTuple;
 			expect(yesDeposit).to.equal(parseEther("1.5"));
 		});
 

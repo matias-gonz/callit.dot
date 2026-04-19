@@ -7,15 +7,10 @@ import { getWsProvider } from "polkadot-api/ws-provider/node";
 import { withPolkadotSdkCompat } from "polkadot-api/polkadot-sdk-compat";
 import { getPolkadotSigner } from "polkadot-api/signer";
 import { sr25519CreateDerive } from "@polkadot-labs/hdkd";
-import {
-	DEV_PHRASE,
-	entropyToMiniSecret,
-	mnemonicToEntropy,
-} from "@polkadot-labs/hdkd-helpers";
+import { DEV_PHRASE, entropyToMiniSecret, mnemonicToEntropy } from "@polkadot-labs/hdkd-helpers";
 import { readDeployments, updateContract, writeDeployments } from "./deployments";
 
-const PASEO_HUB_WS =
-	process.env.PASEO_HUB_WS || "wss://asset-hub-paseo-rpc.n.dwellir.com";
+const PASEO_HUB_WS = process.env.PASEO_HUB_WS || "wss://asset-hub-paseo-rpc.n.dwellir.com";
 
 function loadRootEnv() {
 	const rootEnv = path.resolve(__dirname, "../../../.env");
@@ -98,10 +93,10 @@ async function main() {
 	console.log(`Bytecode size: ${(bytecodeHex.length - 2) / 2} bytes`);
 	const code = Binary.fromHex(bytecodeHex);
 
-	const constructorArgs = encodeAbiParameters(
-		parseAbiParameters("uint256, uint256"),
-		[resolutionBond, disputeWindow],
-	);
+	const constructorArgs = encodeAbiParameters(parseAbiParameters("uint256, uint256"), [
+		resolutionBond,
+		disputeWindow,
+	]);
 
 	console.log("Deploying PredictionMarket via Revive.instantiate_with_code...");
 	const result = await api.tx.Revive.instantiate_with_code({

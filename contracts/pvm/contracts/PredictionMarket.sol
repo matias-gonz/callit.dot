@@ -54,11 +54,7 @@ contract PredictionMarket is Ownable {
 		uint256 amount
 	);
 
-	event MarketResolved(
-		uint256 indexed marketId,
-		address indexed resolver,
-		bool outcome
-	);
+	event MarketResolved(uint256 indexed marketId, address indexed resolver, bool outcome);
 
 	event DisputeRaised(uint256 indexed marketId, address indexed disputer);
 

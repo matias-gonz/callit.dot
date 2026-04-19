@@ -26,9 +26,7 @@ export function networkKeyForChainId(chainId: number): NetworkKey {
 	return chainId === LOCAL_CHAIN_ID ? "local" : "paseoHub";
 }
 
-function mergeNetwork(
-	partial: Partial<NetworkDeployments> | undefined,
-): NetworkDeployments {
+function mergeNetwork(partial: Partial<NetworkDeployments> | undefined): NetworkDeployments {
 	return { ...EMPTY_NETWORK, ...(partial ?? {}) };
 }
 

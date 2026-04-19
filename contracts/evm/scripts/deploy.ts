@@ -25,8 +25,7 @@ async function buildClients(): Promise<{
 	deployerAddress: `0x${string}`;
 }> {
 	const netCfg = hre.network.config as { url?: string; accounts?: unknown };
-	const url =
-		typeof netCfg.url === "string" ? netCfg.url : process.env.ETH_RPC_HTTP || "";
+	const url = typeof netCfg.url === "string" ? netCfg.url : process.env.ETH_RPC_HTTP || "";
 	if (!url) {
 		throw new Error(
 			`No RPC URL for network '${hre.network.name}'. Configure it in hardhat.config.ts.`,
@@ -74,11 +73,9 @@ async function deploy(
 	constructorData?: `0x${string}`,
 ): Promise<string> {
 	const artifact = await hre.artifacts.readArtifact(name);
-	const bytecode = (
-		constructorData
-			? ((artifact.bytecode + constructorData.slice(2)) as `0x${string}`)
-			: (artifact.bytecode as `0x${string}`)
-	);
+	const bytecode = constructorData
+		? ((artifact.bytecode + constructorData.slice(2)) as `0x${string}`)
+		: (artifact.bytecode as `0x${string}`);
 
 	const hash = await walletClient.deployContract({
 		account: walletClient.account!,
@@ -111,10 +108,10 @@ async function main() {
 	console.log(`Writing to deployments.${networkKey}`);
 	console.log(`Resolution bond: ${RESOLUTION_BOND} wei  Dispute window: ${DISPUTE_WINDOW}s`);
 
-	const predictionMarketArgs = encodeAbiParameters(
-		parseAbiParameters("uint256, uint256"),
-		[RESOLUTION_BOND, DISPUTE_WINDOW],
-	);
+	const predictionMarketArgs = encodeAbiParameters(parseAbiParameters("uint256, uint256"), [
+		RESOLUTION_BOND,
+		DISPUTE_WINDOW,
+	]);
 
 	let data = readDeployments();
 
@@ -124,7 +121,12 @@ async function main() {
 	data = updateContract(data, networkKey, "evm", poeAddress);
 
 	console.log("Deploying PredictionMarket (EVM/solc)...");
-	const pmAddress = await deploy("PredictionMarket", walletClient, publicClient, predictionMarketArgs);
+	const pmAddress = await deploy(
+		"PredictionMarket",
+		walletClient,
+		publicClient,
+		predictionMarketArgs,
+	);
 	console.log(`  → ${pmAddress}`);
 	data = updateContract(data, networkKey, "evmPredictionMarket", pmAddress);
 
