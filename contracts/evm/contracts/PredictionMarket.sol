@@ -63,6 +63,8 @@ contract PredictionMarket is Ownable {
 
 	event MarketFinalized(uint256 indexed marketId, bool outcome);
 
+	event WinningsClaimed(uint256 indexed marketId, address indexed claimant, uint256 amount);
+
 	function createMarket(
 		string calldata question,
 		uint256 resolutionTimestamp
@@ -144,6 +146,40 @@ contract PredictionMarket is Ownable {
 		payable(winner).transfer(2 * resolutionBond);
 
 		emit MarketFinalized(marketId, outcome);
+	}
+
+	function claimWinnings(uint256 marketId) external {
+		Market storage m = markets[marketId];
+
+		if (m.state == State.Proposed && block.timestamp > m.disputeDeadline) {
+			m.state = State.Finalized;
+			m.finalOutcome = m.proposedOutcome;
+			payable(m.resolver).transfer(resolutionBond);
+			emit MarketFinalized(marketId, m.finalOutcome);
+		}
+
+		require(m.state == State.Finalized, "Market not finalized");
+
+		uint256 totalPool = m.yesPool + m.noPool;
+		require(totalPool > 0, "No pool to claim from");
+
+		uint256 winningSidePool = m.finalOutcome ? m.yesPool : m.noPool;
+		uint256 userDeposit;
+
+		if (m.finalOutcome) {
+			userDeposit = yesDeposits[marketId][msg.sender];
+			require(userDeposit > 0, "No winning position");
+			yesDeposits[marketId][msg.sender] = 0;
+		} else {
+			userDeposit = noDeposits[marketId][msg.sender];
+			require(userDeposit > 0, "No winning position");
+			noDeposits[marketId][msg.sender] = 0;
+		}
+
+		uint256 payout = (userDeposit * totalPool) / winningSidePool;
+		payable(msg.sender).transfer(payout);
+
+		emit WinningsClaimed(marketId, msg.sender, payout);
 	}
 
 	function getMarket(
