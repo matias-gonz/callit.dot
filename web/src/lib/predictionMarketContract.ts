@@ -38,6 +38,22 @@ export function createPredictionMarketContract(
 	const sdk = createReviveSdk(typedApi, contracts.predictionMarket, { atBest: true });
 	const contract = sdk.getContract(contractAddress);
 
+	let ratioPromise: Promise<bigint> | null = null;
+	function getNativeToEthRatio(): Promise<bigint> {
+		if (!ratioPromise) {
+			const constants = (typedApi as unknown as {
+				constants: { Revive: { NativeToEthRatio: () => Promise<number | bigint> } };
+			}).constants;
+			ratioPromise = constants.Revive.NativeToEthRatio().then((r) => BigInt(r));
+		}
+		return ratioPromise;
+	}
+
+	async function weiToNative(valueWei: bigint): Promise<bigint> {
+		const ratio = await getNativeToEthRatio();
+		return valueWei / ratio;
+	}
+
 	async function readMessage<T>(
 		message:
 			| "getMarketCount"
@@ -77,6 +93,8 @@ export function createPredictionMarketContract(
 
 	return {
 		contract,
+
+		getNativeToEthRatio,
 
 		isAddressMapped(address: string): Promise<boolean> {
 			return sdk.addressIsMapped(address);
@@ -136,32 +154,50 @@ export function createPredictionMarketContract(
 		async buyShares(
 			marketId: bigint,
 			outcome: boolean,
-			value: bigint,
+			valueWei: bigint,
 			origin: string,
 			signer: PolkadotSigner,
 		) {
-			const dry = await dryRunWrite("buyShares", { marketId, outcome }, origin, value);
+			const nativeValue = await weiToNative(valueWei);
+			const dry = await dryRunWrite(
+				"buyShares",
+				{ marketId, outcome },
+				origin,
+				nativeValue,
+			);
 			return dry.send().signSubmitAndWatch(signer);
 		},
 
 		async resolveMarket(
 			marketId: bigint,
 			outcome: boolean,
-			bond: bigint,
+			bondWei: bigint,
 			origin: string,
 			signer: PolkadotSigner,
 		) {
-			const dry = await dryRunWrite("resolveMarket", { marketId, outcome }, origin, bond);
+			const nativeValue = await weiToNative(bondWei);
+			const dry = await dryRunWrite(
+				"resolveMarket",
+				{ marketId, outcome },
+				origin,
+				nativeValue,
+			);
 			return dry.send().signSubmitAndWatch(signer);
 		},
 
 		async disputeResolution(
 			marketId: bigint,
-			bond: bigint,
+			bondWei: bigint,
 			origin: string,
 			signer: PolkadotSigner,
 		) {
-			const dry = await dryRunWrite("disputeResolution", { marketId }, origin, bond);
+			const nativeValue = await weiToNative(bondWei);
+			const dry = await dryRunWrite(
+				"disputeResolution",
+				{ marketId },
+				origin,
+				nativeValue,
+			);
 			return dry.send().signSubmitAndWatch(signer);
 		},
 
