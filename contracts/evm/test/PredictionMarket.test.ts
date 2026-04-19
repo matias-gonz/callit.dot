@@ -1,9 +1,9 @@
 import { loadFixture, time } from "@nomicfoundation/hardhat-network-helpers";
 import { expect } from "chai";
 import hre from "hardhat";
-import { getAddress, parseEventLogs } from "viem";
+import { getAddress, parseEther, parseEventLogs } from "viem";
 
-type MarketTuple = readonly [string, string, bigint, number];
+type MarketTuple = readonly [string, string, bigint, number, bigint, bigint];
 
 type MarketCreatedArgs = {
 	marketId: bigint;
@@ -113,5 +113,114 @@ describe("PredictionMarket (EVM)", function () {
 		expect(getAddress(args.creator)).to.equal(getAddress(owner.account.address));
 		expect(args.question).to.equal(question);
 		expect(args.resolutionTimestamp).to.equal(deadline);
+	});
+
+	describe("buyShares", function () {
+		async function marketFixture() {
+			const base = await loadFixture(deployFixture);
+			const deadline = await futureTimestamp();
+			await base.market.write.createMarket(["Will DOT hit $20?", deadline]);
+			return { ...base, deadline };
+		}
+
+		it("Should record a YES deposit", async function () {
+			const { market, owner } = await loadFixture(marketFixture);
+			const amount = parseEther("1");
+
+			await market.write.buyShares([0n, true], { value: amount });
+
+			const [yesDeposit, noDeposit] = await market.read.getUserPosition([
+				0n,
+				owner.account.address,
+			]);
+			expect(yesDeposit).to.equal(amount);
+			expect(noDeposit).to.equal(0n);
+		});
+
+		it("Should record a NO deposit", async function () {
+			const { market, owner } = await loadFixture(marketFixture);
+			const amount = parseEther("0.5");
+
+			await market.write.buyShares([0n, false], { value: amount });
+
+			const [yesDeposit, noDeposit] = await market.read.getUserPosition([
+				0n,
+				owner.account.address,
+			]);
+			expect(yesDeposit).to.equal(0n);
+			expect(noDeposit).to.equal(amount);
+		});
+
+		it("Should update yesPool and noPool in getMarket", async function () {
+			const { market, owner, otherAccount } = await loadFixture(marketFixture);
+
+			await market.write.buyShares([0n, true], {
+				account: owner.account,
+				value: parseEther("2"),
+			});
+			await market.write.buyShares([0n, false], {
+				account: otherAccount.account,
+				value: parseEther("1"),
+			});
+
+			const [, , , , yesPool, noPool] = (await market.read.getMarket([0n])) as MarketTuple;
+			expect(yesPool).to.equal(parseEther("2"));
+			expect(noPool).to.equal(parseEther("1"));
+		});
+
+		it("Should accumulate multiple buys from the same user", async function () {
+			const { market, owner } = await loadFixture(marketFixture);
+
+			await market.write.buyShares([0n, true], { value: parseEther("1") });
+			await market.write.buyShares([0n, true], { value: parseEther("0.5") });
+
+			const [yesDeposit] = await market.read.getUserPosition([0n, owner.account.address]);
+			expect(yesDeposit).to.equal(parseEther("1.5"));
+		});
+
+		it("Should revert with zero value", async function () {
+			const { market } = await loadFixture(marketFixture);
+			try {
+				await market.write.buyShares([0n, true], { value: 0n });
+				expect.fail("Should have reverted");
+			} catch (e: unknown) {
+				expect((e as Error).message).to.include("Must send tokens to buy shares");
+			}
+		});
+
+		it("Should revert after the resolution timestamp", async function () {
+			const { market } = await loadFixture(marketFixture);
+			await time.increase(3601);
+			try {
+				await market.write.buyShares([0n, true], { value: parseEther("1") });
+				expect.fail("Should have reverted");
+			} catch (e: unknown) {
+				expect((e as Error).message).to.include("Market closed for trading");
+			}
+		});
+
+		it("Should emit SharesBought event", async function () {
+			const { market, owner, publicClient } = await loadFixture(marketFixture);
+			const amount = parseEther("1");
+
+			const hash = await market.write.buyShares([0n, true], { value: amount });
+			const receipt = await publicClient.waitForTransactionReceipt({ hash });
+			const logs = parseEventLogs({
+				abi: market.abi,
+				logs: receipt.logs,
+				eventName: "SharesBought",
+			});
+			expect(logs).to.have.lengthOf(1);
+			const args = logs[0].args as {
+				marketId: bigint;
+				buyer: string;
+				outcome: boolean;
+				amount: bigint;
+			};
+			expect(args.marketId).to.equal(0n);
+			expect(getAddress(args.buyer)).to.equal(getAddress(owner.account.address));
+			expect(args.outcome).to.equal(true);
+			expect(args.amount).to.equal(amount);
+		});
 	});
 });
