@@ -609,6 +609,22 @@ describe("PredictionMarket (EVM)", function () {
 			}
 		});
 
+		it("Should revert if no pool to claim from (empty market)", async function () {
+			const { market, owner } = await loadFixture(deployFixture);
+			const deadline = await futureTimestamp(3600);
+			await market.write.createMarket(["empty", deadline]);
+			await time.increaseTo(deadline);
+			await market.write.resolveMarket([0n, true], { value: RESOLUTION_BOND });
+			await time.increase(DISPUTE_WINDOW + 1n);
+
+			try {
+				await market.write.claimWinnings([0n], { account: owner.account });
+				expect.fail("Should have reverted");
+			} catch (e: unknown) {
+				expect((e as Error).message).to.include("No pool to claim from");
+			}
+		});
+
 		it("Should emit WinningsClaimed event", async function () {
 			const { market, owner, otherAccount, publicClient } = await loadFixture(poolFixture);
 
@@ -638,6 +654,61 @@ describe("PredictionMarket (EVM)", function () {
 			expect(args.marketId).to.equal(0n);
 			expect(getAddress(args.claimant)).to.equal(getAddress(owner.account.address));
 			expect(args.amount).to.equal(parseEther("4"));
+		});
+	});
+
+	describe("setResolutionBond", function () {
+		it("Should update the bond amount", async function () {
+			const { market } = await loadFixture(deployFixture);
+			await market.write.setResolutionBond([parseEther("0.5")]);
+			expect(await market.read.resolutionBond()).to.equal(parseEther("0.5"));
+		});
+
+		it("Should revert if caller is not owner", async function () {
+			const { market, otherAccount } = await loadFixture(deployFixture);
+			try {
+				await market.write.setResolutionBond([parseEther("0.5")], {
+					account: otherAccount.account,
+				});
+				expect.fail("Should have reverted");
+			} catch (e: unknown) {
+				expect((e as Error).message).to.include("OwnableUnauthorizedAccount");
+			}
+		});
+
+		it("Should not affect the bond of a market already in Proposed state", async function () {
+			const { market } = await loadFixture(deployFixture);
+			const deadline = await futureTimestamp(3600);
+			await market.write.createMarket(["bond isolation", deadline]);
+			await time.increaseTo(deadline);
+			await market.write.resolveMarket([0n, true], { value: RESOLUTION_BOND });
+
+			await market.write.setResolutionBond([parseEther("9")]);
+
+			await market.write.disputeResolution([0n], {
+				value: RESOLUTION_BOND,
+			});
+
+			const [, , , state] = (await market.read.getMarket([0n])) as MarketTuple;
+			expect(state).to.equal(3);
+		});
+	});
+
+	describe("setDisputeWindow", function () {
+		it("Should update the dispute window", async function () {
+			const { market } = await loadFixture(deployFixture);
+			await market.write.setDisputeWindow([3600n]);
+			expect(await market.read.disputeWindow()).to.equal(3600n);
+		});
+
+		it("Should revert if caller is not owner", async function () {
+			const { market, otherAccount } = await loadFixture(deployFixture);
+			try {
+				await market.write.setDisputeWindow([3600n], { account: otherAccount.account });
+				expect.fail("Should have reverted");
+			} catch (e: unknown) {
+				expect((e as Error).message).to.include("OwnableUnauthorizedAccount");
+			}
 		});
 	});
 });

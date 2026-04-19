@@ -222,4 +222,12 @@ contract PredictionMarket is Ownable {
 	function getMarketCount() external view returns (uint256) {
 		return marketCount;
 	}
+
+	function setResolutionBond(uint256 amount) external onlyOwner {
+		resolutionBond = amount;
+	}
+
+	function setDisputeWindow(uint256 duration) external onlyOwner {
+		disputeWindow = duration;
+	}
 }

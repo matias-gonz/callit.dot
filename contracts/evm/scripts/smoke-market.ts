@@ -34,6 +34,9 @@ const abi = [
 			{ name: "question", type: "string" },
 			{ name: "resolutionTimestamp", type: "uint256" },
 			{ name: "state", type: "uint8" },
+			{ name: "proposedOutcome", type: "bool" },
+			{ name: "yesPool", type: "uint256" },
+			{ name: "noPool", type: "uint256" },
 		],
 		stateMutability: "view",
 	},
@@ -130,13 +133,15 @@ async function main() {
 	console.log(`Markets after: ${after}`);
 	if (after !== before + 1n) throw new Error(`count did not increment`);
 
-	const [creator, storedQ, storedTs, state] = (await publicClient.readContract({
+	const [creator, storedQ, storedTs, state, , yesPool, noPool] = (await publicClient.readContract({
 		address,
 		abi,
 		functionName: "getMarket",
 		args: [args.marketId],
-	})) as [string, string, bigint, number];
-	console.log(`getMarket(${args.marketId}): creator=${creator} q="${storedQ}" ts=${storedTs} state=${state}`);
+	})) as [string, string, bigint, number, boolean, bigint, bigint];
+	console.log(
+		`getMarket(${args.marketId}): creator=${creator} q="${storedQ}" ts=${storedTs} state=${state} yes=${yesPool} no=${noPool}`,
+	);
 	if (creator.toLowerCase() !== ALICE.address.toLowerCase())
 		throw new Error(`stored creator mismatch`);
 	if (storedQ !== question) throw new Error(`stored question mismatch`);
