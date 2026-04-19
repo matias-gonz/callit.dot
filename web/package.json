@@ -20,8 +20,10 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@novasamatech/host-api": "^0.6.18",
     "@novasamatech/product-sdk": "^0.6.12",
     "@polkadot-api/descriptors": "file:.papi/descriptors",
+    "@polkadot-api/sdk-ink": "^0.6.2",
     "@polkadot-labs/hdkd": "^0.0.26",
     "@polkadot-labs/hdkd-helpers": "^0.0.27",
     "blakejs": "^1.2.1",

@@ -1,25 +1,59 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { type Address } from "viem";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { createClient, type PolkadotClient, type PolkadotSigner, type TxEvent } from "polkadot-api";
+import { getWsProvider } from "polkadot-api/ws-provider/web";
+import { withPolkadotSdkCompat } from "polkadot-api/polkadot-sdk-compat";
+import { callit, paseoHub } from "@polkadot-api/descriptors";
+import type { ReviveSdkTypedApi } from "@polkadot-api/sdk-ink";
 import {
-	predictionMarketAbi,
-	marketStateLabels,
-	evmDevAccounts,
-	getPublicClient,
-	getWalletClient,
-} from "../config/evm";
+	createPredictionMarketContract,
+	type RawMarket,
+} from "../lib/predictionMarketContract";
+import { sr25519DevAccounts } from "../lib/devSigners";
+import { setupHostProvider, isInsideHost, type HostProviderResult } from "../lib/hostProvider";
 import { deployments } from "../config/deployments";
-import { getNetworkKey, getNetworkPresetEndpoints, type NetworkPreset } from "../config/network";
-import { useChainStore } from "../store/chainStore";
 
-interface Market {
-	id: bigint;
-	creator: string;
-	question: string;
-	resolutionTimestamp: bigint;
-	state: number;
+type MarketsNetworkKey = "local" | "paseoHub";
+
+interface NetworkDef {
+	label: string;
+	wsUrl: string;
+	descriptor: typeof callit | typeof paseoHub;
+	genesis?: `0x${string}`;
+	ss58Prefix: number;
+	deployKey: "local" | "paseoHub";
 }
 
+const NETWORKS: Record<MarketsNetworkKey, NetworkDef> = {
+	local: {
+		label: "Local Dev",
+		wsUrl: "ws://127.0.0.1:9944",
+		descriptor: callit,
+		ss58Prefix: 42,
+		deployKey: "local",
+	},
+	paseoHub: {
+		label: "Paseo Asset Hub",
+		wsUrl: "wss://asset-hub-paseo-rpc.n.dwellir.com",
+		descriptor: paseoHub,
+		genesis: "0xd6eec26135305a8ad257a20d003357284c8aa03d0bdb2b357ab0a22371e11ef2",
+		ss58Prefix: 0,
+		deployKey: "paseoHub",
+	},
+};
+
+type AccountKind = "host" | "alice" | "bob" | "charlie";
+
+const DEV_ACCOUNT_INDEX: Record<Exclude<AccountKind, "host">, number> = {
+	alice: 0,
+	bob: 1,
+	charlie: 2,
+};
+
+const MARKET_STATE_LABELS = ["Open", "Resolving", "Proposed", "Disputed", "Finalized"] as const;
+
 const STORAGE_KEY = "prediction-market-address";
+const NETWORK_STORAGE_KEY = "markets-network";
+const ACCOUNT_STORAGE_KEY = "markets-account";
 
 function toLocalDateTimeInput(date: Date): string {
 	const pad = (n: number) => n.toString().padStart(2, "0");
@@ -48,37 +82,171 @@ function formatRelative(unixSeconds: bigint): string {
 }
 
 function shortAddr(addr: string): string {
+	if (addr.length <= 14) return addr;
 	return `${addr.slice(0, 6)}…${addr.slice(-4)}`;
 }
 
-const NETWORK_LABELS: Record<NetworkPreset, string> = {
-	local: "Local Dev",
-	testnet: "Polkadot Hub TestNet",
-};
+function loadStoredNetwork(): MarketsNetworkKey {
+	const stored = typeof localStorage !== "undefined" ? localStorage.getItem(NETWORK_STORAGE_KEY) : null;
+	if (stored === "local" || stored === "paseoHub") return stored;
+	return "paseoHub";
+}
+
+function loadStoredAccount(): AccountKind {
+	const stored = typeof localStorage !== "undefined" ? localStorage.getItem(ACCOUNT_STORAGE_KEY) : null;
+	if (stored === "host" || stored === "alice" || stored === "bob" || stored === "charlie") return stored;
+	return "host";
+}
+
+interface LogEntry {
+	id: number;
+	ts: string;
+	text: string;
+	level: "info" | "ok" | "err" | "finalized";
+}
+
+function levelClass(level: LogEntry["level"]): string {
+	switch (level) {
+		case "ok":
+			return "text-accent-green";
+		case "err":
+			return "text-accent-red";
+		case "finalized":
+			return "text-accent-blue";
+		default:
+			return "text-text-secondary";
+	}
+}
 
 export default function MarketsPage() {
-	const ethRpcUrl = useChainStore((s) => s.ethRpcUrl);
-	const setEthRpcUrl = useChainStore((s) => s.setEthRpcUrl);
-	const network = getNetworkKey(ethRpcUrl);
-	const scopedStorageKey = `${STORAGE_KEY}:${ethRpcUrl}`;
-	const defaultAddress = deployments[network].evmPredictionMarket ?? undefined;
+	const [network, setNetwork] = useState<MarketsNetworkKey>(loadStoredNetwork);
+	const [accountKind, setAccountKind] = useState<AccountKind>(loadStoredAccount);
 
-	function switchNetwork(preset: NetworkPreset) {
-		const { ethRpcUrl: nextEthRpc } = getNetworkPresetEndpoints(preset);
-		setEthRpcUrl(nextEthRpc);
-	}
+	const networkDef = NETWORKS[network];
+	const scopedStorageKey = `${STORAGE_KEY}:${network}`;
+	const defaultAddress = deployments[networkDef.deployKey].evmPredictionMarket ?? undefined;
 
 	const [contractAddress, setContractAddress] = useState("");
-	const [selectedAccount, setSelectedAccount] = useState(0);
 	const [question, setQuestion] = useState("");
 	const [deadline, setDeadline] = useState(defaultDeadline());
-	const [markets, setMarkets] = useState<Market[]>([]);
-	const [txStatus, setTxStatus] = useState<string | null>(null);
+	const [markets, setMarkets] = useState<RawMarket[]>([]);
 	const [loading, setLoading] = useState(false);
+	const [submitting, setSubmitting] = useState(false);
+	const [log, setLog] = useState<LogEntry[]>([]);
+	const logIdRef = useRef(0);
+
+	const [hostProvider, setHostProvider] = useState<HostProviderResult | null>(null);
+	const [hostAddress, setHostAddress] = useState<string | null>(null);
+	const [hostReady, setHostReady] = useState(false);
+	const [hostError, setHostError] = useState<string | null>(null);
+	const [permissionGranted, setPermissionGranted] = useState(false);
+
+	const clientRef = useRef<PolkadotClient | null>(null);
+	const [clientGen, setClientGen] = useState(0);
+
+	const hostAvailable = useMemo(() => isInsideHost(), []);
+
+	function pushLog(text: string, level: LogEntry["level"] = "info") {
+		logIdRef.current += 1;
+		const ts = new Date().toLocaleTimeString();
+		setLog((prev) => [...prev, { id: logIdRef.current, ts, text, level }].slice(-50));
+	}
+
+	useEffect(() => {
+		localStorage.setItem(NETWORK_STORAGE_KEY, network);
+	}, [network]);
+
+	useEffect(() => {
+		localStorage.setItem(ACCOUNT_STORAGE_KEY, accountKind);
+	}, [accountKind]);
 
 	useEffect(() => {
 		setContractAddress(localStorage.getItem(scopedStorageKey) || defaultAddress || "");
 	}, [defaultAddress, scopedStorageKey]);
+
+	useEffect(() => {
+		let cancelled = false;
+
+		async function setup() {
+			if (clientRef.current) {
+				try {
+					clientRef.current.destroy();
+				} catch {
+					/* ignore */
+				}
+				clientRef.current = null;
+			}
+			setHostProvider(null);
+			setHostAddress(null);
+			setHostReady(false);
+			setHostError(null);
+			setPermissionGranted(false);
+
+			const useHost = network === "paseoHub" && accountKind === "host";
+
+			try {
+				if (useHost) {
+					if (!networkDef.genesis) {
+						throw new Error("Host API needs a genesis hash");
+					}
+					const provider = await setupHostProvider({
+						genesis: networkDef.genesis,
+						ss58Prefix: networkDef.ss58Prefix,
+					});
+					if (cancelled) {
+						try {
+							provider.client.destroy();
+						} catch {
+							/* ignore */
+						}
+						return;
+					}
+					clientRef.current = provider.client;
+					setHostProvider(provider);
+					provider.subscribeAccounts((accts) => {
+						if (cancelled) return;
+						const first = accts[0];
+						setHostAddress(first ? first.address : null);
+						setHostReady(!!first);
+					});
+					pushLog(`Connected to ${networkDef.label} via Host API`, "ok");
+				} else {
+					const client = createClient(withPolkadotSdkCompat(getWsProvider(networkDef.wsUrl)));
+					if (cancelled) {
+						try {
+							client.destroy();
+						} catch {
+							/* ignore */
+						}
+						return;
+					}
+					clientRef.current = client;
+					pushLog(`Connected to ${networkDef.label} (${networkDef.wsUrl})`, "ok");
+				}
+				if (!cancelled) setClientGen((g) => g + 1);
+			} catch (e) {
+				if (cancelled) return;
+				const msg = e instanceof Error ? e.message : String(e);
+				setHostError(msg);
+				pushLog(`Connection failed: ${msg}`, "err");
+			}
+		}
+
+		setup();
+
+		return () => {
+			cancelled = true;
+			if (clientRef.current) {
+				try {
+					clientRef.current.destroy();
+				} catch {
+					/* ignore */
+				}
+				clientRef.current = null;
+			}
+		};
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [network, accountKind]);
 
 	function saveAddress(address: string) {
 		setContractAddress(address);
@@ -89,124 +257,196 @@ export default function MarketsPage() {
 		}
 	}
 
-	function missingContractMessage() {
-		return [
-			"Error: No PredictionMarket contract was found at this address on",
-			`${ethRpcUrl}.`,
-			"Deploy one with: cd contracts/evm && npm run deploy:local.",
-		].join(" ");
-	}
-
 	const loadMarkets = useCallback(async () => {
 		if (!contractAddress) {
-			setTxStatus("Error: Enter a contract address first");
+			pushLog("Enter a contract address to load markets", "err");
 			return;
 		}
+		if (!clientRef.current) {
+			pushLog("Chain client not ready yet", "err");
+			return;
+		}
+		setLoading(true);
 		try {
-			setLoading(true);
-			setTxStatus(null);
-			const client = getPublicClient(ethRpcUrl);
-			const addr = contractAddress as Address;
-
-			const code = await client.getCode({ address: addr });
-			if (!code || code === "0x") {
-				setMarkets([]);
-				setTxStatus(missingContractMessage());
-				return;
-			}
-
-			const count = (await client.readContract({
-				address: addr,
-				abi: predictionMarketAbi,
-				functionName: "getMarketCount",
-			})) as bigint;
-
-			const result: Market[] = [];
+			const typedApi = clientRef.current.getTypedApi(
+				networkDef.descriptor,
+			) as unknown as ReviveSdkTypedApi;
+			const api = createPredictionMarketContract(typedApi, contractAddress);
+			const count = await api.getMarketCount();
+			const result: RawMarket[] = [];
 			for (let i = 0n; i < count; i++) {
-				const [creator, q, ts, state] = (await client.readContract({
-					address: addr,
-					abi: predictionMarketAbi,
-					functionName: "getMarket",
-					args: [i],
-				})) as [string, string, bigint, number];
-				result.push({ id: i, creator, question: q, resolutionTimestamp: ts, state });
+				result.push(await api.getMarket(i));
 			}
 			result.reverse();
 			setMarkets(result);
+			pushLog(`Loaded ${result.length} market${result.length === 1 ? "" : "s"}`, "ok");
 		} catch (e) {
-			console.error("Failed to load markets:", e);
-			setTxStatus(`Error: ${e instanceof Error ? e.message : e}`);
+			const msg = e instanceof Error ? e.message : String(e);
+			pushLog(`Failed to load markets: ${msg}`, "err");
+			setMarkets([]);
 		} finally {
 			setLoading(false);
 		}
-		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [contractAddress, ethRpcUrl]);
+	}, [contractAddress, networkDef.descriptor]);
 
 	useEffect(() => {
-		if (contractAddress) {
+		if (clientGen > 0 && contractAddress) {
 			loadMarkets();
-		} else {
+		} else if (!contractAddress) {
 			setMarkets([]);
-			setTxStatus(null);
 		}
-	}, [contractAddress, ethRpcUrl, loadMarkets]);
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [clientGen, contractAddress]);
+
+	async function resolveSigner(): Promise<{ signer: PolkadotSigner; origin: string } | null> {
+		if (accountKind === "host") {
+			if (!hostProvider) {
+				pushLog("Host API provider is not ready", "err");
+				return null;
+			}
+			if (!permissionGranted) {
+				pushLog("Requesting transaction permission from host…");
+				const ok = await hostProvider.requestTransactionPermission();
+				if (!ok) {
+					pushLog("Host denied the transaction permission", "err");
+					return null;
+				}
+				setPermissionGranted(true);
+			}
+			const signer = hostProvider.getSigner();
+			const origin = hostProvider.getAddress();
+			if (!signer || !origin) {
+				pushLog("No account paired in host yet — open your Polkadot App", "err");
+				return null;
+			}
+			return { signer, origin };
+		}
+
+		const dev = sr25519DevAccounts[DEV_ACCOUNT_INDEX[accountKind]];
+		return { signer: dev.signer, origin: dev.address };
+	}
 
 	async function createMarket() {
 		if (!contractAddress) {
-			setTxStatus("Error: Enter a contract address");
+			pushLog("Enter a contract address", "err");
 			return;
 		}
 		const trimmed = question.trim();
 		if (!trimmed) {
-			setTxStatus("Error: Enter a question");
+			pushLog("Enter a question", "err");
 			return;
 		}
 		const deadlineMs = new Date(deadline).getTime();
 		if (Number.isNaN(deadlineMs)) {
-			setTxStatus("Error: Invalid deadline");
+			pushLog("Invalid deadline", "err");
 			return;
 		}
 		const deadlineSec = BigInt(Math.floor(deadlineMs / 1000));
 		const nowSec = BigInt(Math.floor(Date.now() / 1000));
 		if (deadlineSec <= nowSec) {
-			setTxStatus("Error: Deadline must be in the future");
+			pushLog("Deadline must be in the future", "err");
+			return;
+		}
+		if (!clientRef.current) {
+			pushLog("Chain client not ready", "err");
 			return;
 		}
 
+		const resolved = await resolveSigner();
+		if (!resolved) return;
+
+		setSubmitting(true);
 		try {
-			const publicClient = getPublicClient(ethRpcUrl);
-			const code = await publicClient.getCode({ address: contractAddress as Address });
-			if (!code || code === "0x") {
-				setTxStatus(missingContractMessage());
-				return;
-			}
-			setTxStatus("Submitting createMarket...");
-			const walletClient = await getWalletClient(selectedAccount, ethRpcUrl);
-			const hash = await walletClient.writeContract({
-				address: contractAddress as Address,
-				abi: predictionMarketAbi,
-				functionName: "createMarket",
-				args: [trimmed, deadlineSec],
+			const typedApi = clientRef.current.getTypedApi(
+				networkDef.descriptor,
+			) as unknown as ReviveSdkTypedApi;
+			const api = createPredictionMarketContract(typedApi, contractAddress);
+
+			pushLog(`Dry-running createMarket as ${shortAddr(resolved.origin)}…`);
+			const obs = await api.createMarket(
+				trimmed,
+				deadlineSec,
+				resolved.origin,
+				resolved.signer,
+			);
+
+			await new Promise<void>((resolve, reject) => {
+				let resolved = false;
+				const sub = obs.subscribe({
+					next: (ev: TxEvent) => {
+						switch (ev.type) {
+							case "signed":
+								pushLog(`Signed tx ${ev.txHash.slice(0, 18)}…`);
+								break;
+							case "broadcasted":
+								pushLog("Broadcasted");
+								break;
+							case "txBestBlocksState":
+								if (ev.found) {
+									pushLog(`In best block #${ev.block.number}`, "ok");
+									if (!resolved) {
+										resolved = true;
+										sub.unsubscribe();
+										resolve();
+									}
+								}
+								break;
+							case "finalized":
+								if (ev.ok) {
+									pushLog(`Finalized in block #${ev.block.number}`, "finalized");
+								} else {
+									pushLog(
+										`Finalized but failed: ${ev.dispatchError.type}`,
+										"err",
+									);
+								}
+								if (!resolved) {
+									resolved = true;
+									if (ev.ok) {
+										resolve();
+									} else {
+										reject(
+											new Error(
+												`Transaction failed: ${ev.dispatchError.type}`,
+											),
+										);
+									}
+								}
+								break;
+						}
+					},
+					error: (err) => {
+						sub.unsubscribe();
+						reject(err);
+					},
+				});
 			});
-			setTxStatus(`Transaction submitted: ${hash}`);
-			await publicClient.waitForTransactionReceipt({ hash });
-			setTxStatus("Market created!");
+
+			pushLog("Market created", "ok");
 			setQuestion("");
 			setDeadline(defaultDeadline());
-			loadMarkets();
+			await loadMarkets();
 		} catch (e) {
-			console.error("Transaction failed:", e);
-			setTxStatus(`Error: ${e instanceof Error ? e.message : e}`);
+			const msg = e instanceof Error ? e.message : String(e);
+			pushLog(`createMarket failed: ${msg}`, "err");
+		} finally {
+			setSubmitting(false);
 		}
 	}
 
-	const currentAddress = evmDevAccounts[selectedAccount].account.address.toLowerCase();
+	const activeOrigin = useMemo(() => {
+		if (accountKind === "host") return hostAddress ?? null;
+		return sr25519DevAccounts[DEV_ACCOUNT_INDEX[accountKind]].address;
+	}, [accountKind, hostAddress]);
 
 	const stats = useMemo(() => {
+		const origin = activeOrigin?.toLowerCase() ?? "";
 		const open = markets.filter((m) => m.state === 0).length;
-		const mine = markets.filter((m) => m.creator.toLowerCase() === currentAddress).length;
+		const mine = origin
+			? markets.filter((m) => m.creator.toLowerCase() === origin).length
+			: 0;
 		return { total: markets.length, open, mine };
-	}, [markets, currentAddress]);
+	}, [markets, activeOrigin]);
 
 	return (
 		<div className="space-y-6 animate-fade-in">
@@ -217,11 +457,8 @@ export default function MarketsPage() {
 					<code className="rounded border border-white/[0.08] bg-white/[0.04] px-1.5 py-0.5 text-xs font-mono">
 						PredictionMarket
 					</code>{" "}
-					contract. Anyone can call{" "}
-					<code className="rounded border border-white/[0.08] bg-white/[0.04] px-1.5 py-0.5 text-xs font-mono">
-						createMarket
-					</code>{" "}
-					with a question and a resolution timestamp.
+					contract through pallet-revive. Sign with the host-paired account (Polkadot App
+					on paseo.li) or with one of the sr25519 dev accounts for testing.
 				</p>
 			</div>
 
@@ -229,31 +466,84 @@ export default function MarketsPage() {
 				<div>
 					<label className="label">Network</label>
 					<div className="flex flex-wrap gap-2">
-						{(Object.keys(NETWORK_LABELS) as NetworkPreset[]).map((preset) => {
-							const active = network === preset;
+						{(Object.keys(NETWORKS) as MarketsNetworkKey[]).map((key) => {
+							const active = network === key;
 							return (
 								<button
-									key={preset}
-									onClick={() => switchNetwork(preset)}
+									key={key}
+									onClick={() => setNetwork(key)}
 									className={`text-xs px-3 py-1.5 rounded-lg border transition-colors ${
 										active
 											? "border-accent-purple/40 bg-accent-purple/15 text-accent-purple"
 											: "border-white/[0.08] bg-white/[0.02] text-text-secondary hover:border-white/[0.15] hover:text-text-primary"
 									}`}
 								>
-									{NETWORK_LABELS[preset]}
+									{NETWORKS[key].label}
 								</button>
 							);
 						})}
 					</div>
 					<p className="text-xs text-text-muted mt-1.5">
-						Current: {NETWORK_LABELS[network]} ·{" "}
-						<code className="font-mono">{ethRpcUrl}</code>
+						Connecting via{" "}
+						<code className="font-mono">
+							{accountKind === "host" && network === "paseoHub"
+								? `Host API (${networkDef.genesis?.slice(0, 10)}…)`
+								: networkDef.wsUrl}
+						</code>
 					</p>
-					<p className="text-xs text-text-muted mt-1">
-						This page only uses the Ethereum JSON-RPC endpoint (viem). The Substrate
-						WebSocket isn&apos;t required here, so WS connection errors can be ignored.
-					</p>
+				</div>
+
+				<div>
+					<label className="label">Signing account</label>
+					<div className="flex flex-wrap gap-2">
+						{(
+							[
+								{ key: "host" as const, label: "My account (Host)" },
+								{ key: "alice" as const, label: "Alice (dev)" },
+								{ key: "bob" as const, label: "Bob (dev)" },
+								{ key: "charlie" as const, label: "Charlie (dev)" },
+							]
+						).map(({ key, label }) => {
+							const disabled = key === "host" && network === "local";
+							const active = accountKind === key;
+							return (
+								<button
+									key={key}
+									disabled={disabled}
+									onClick={() => setAccountKind(key)}
+									title={disabled ? "Host API only works on Paseo Asset Hub" : undefined}
+									className={`text-xs px-3 py-1.5 rounded-lg border transition-colors ${
+										disabled
+											? "border-white/[0.04] bg-white/[0.01] text-text-muted cursor-not-allowed"
+											: active
+												? "border-accent-purple/40 bg-accent-purple/15 text-accent-purple"
+												: "border-white/[0.08] bg-white/[0.02] text-text-secondary hover:border-white/[0.15] hover:text-text-primary"
+									}`}
+								>
+									{label}
+								</button>
+							);
+						})}
+					</div>
+					{accountKind === "host" && network === "paseoHub" && (
+						<p className="text-xs text-text-muted mt-1.5">
+							{hostError
+								? `Host API error: ${hostError}`
+								: hostReady && hostAddress
+									? `Host account: ${shortAddr(hostAddress)}`
+									: hostAvailable
+										? "Waiting for the host to pair your Polkadot App…"
+										: "Running outside a host — open this app inside paseo.li to use the Host account, or pick a dev account for testing."}
+						</p>
+					)}
+					{accountKind !== "host" && (
+						<p className="text-xs text-text-muted mt-1.5">
+							Signing as{" "}
+							<code className="font-mono">
+								{sr25519DevAccounts[DEV_ACCOUNT_INDEX[accountKind]].address}
+							</code>
+						</p>
+					)}
 				</div>
 
 				<div>
@@ -263,7 +553,7 @@ export default function MarketsPage() {
 							type="text"
 							value={contractAddress}
 							onChange={(e) => saveAddress(e.target.value)}
-							placeholder="0x..."
+							placeholder="0x…"
 							className="input-field w-full"
 						/>
 						{defaultAddress && contractAddress !== defaultAddress && (
@@ -277,30 +567,15 @@ export default function MarketsPage() {
 					</div>
 					{!defaultAddress && (
 						<p className="text-xs text-accent-yellow mt-1.5">
-							No {NETWORK_LABELS[network]} deployment recorded. Deploy with{" "}
+							No {networkDef.label} deployment recorded. Deploy with{" "}
 							<code className="font-mono">
 								{network === "local"
 									? "cd contracts/evm && npm run deploy:local"
-									: "make deploy-paseo"}
+									: "make deploy-paseo-hub"}
 							</code>
 							.
 						</p>
 					)}
-				</div>
-
-				<div>
-					<label className="label">Dev Account</label>
-					<select
-						value={selectedAccount}
-						onChange={(e) => setSelectedAccount(parseInt(e.target.value))}
-						className="input-field w-full"
-					>
-						{evmDevAccounts.map((acc, i) => (
-							<option key={i} value={i}>
-								{acc.name} ({acc.account.address})
-							</option>
-						))}
-					</select>
 				</div>
 
 				<div className="space-y-3">
@@ -329,6 +604,7 @@ export default function MarketsPage() {
 					</div>
 					<button
 						onClick={createMarket}
+						disabled={submitting}
 						className="btn-accent"
 						style={{
 							background: "linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)",
@@ -336,17 +612,9 @@ export default function MarketsPage() {
 								"0 1px 2px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.1)",
 						}}
 					>
-						Create Market
+						{submitting ? "Submitting…" : "Create Market"}
 					</button>
 				</div>
-
-				{txStatus && (
-					<p
-						className={`text-sm font-medium ${txStatus.startsWith("Error") ? "text-accent-red" : "text-accent-green"}`}
-					>
-						{txStatus}
-					</p>
-				)}
 			</div>
 
 			<div className="card space-y-4">
@@ -362,7 +630,7 @@ export default function MarketsPage() {
 						disabled={loading}
 						className="btn-secondary text-xs"
 					>
-						{loading ? "Loading..." : "Refresh"}
+						{loading ? "Loading…" : "Refresh"}
 					</button>
 				</div>
 
@@ -371,9 +639,11 @@ export default function MarketsPage() {
 				) : (
 					<div className="space-y-2">
 						{markets.map((m) => {
-							const mine = m.creator.toLowerCase() === currentAddress;
+							const mine =
+								activeOrigin &&
+								m.creator.toLowerCase() === activeOrigin.toLowerCase();
 							const deadlineDate = new Date(Number(m.resolutionTimestamp) * 1000);
-							const stateLabel = marketStateLabels[m.state] ?? `State ${m.state}`;
+							const stateLabel = MARKET_STATE_LABELS[m.state] ?? `State ${m.state}`;
 							const past = deadlineDate.getTime() <= Date.now();
 							return (
 								<div
@@ -417,6 +687,21 @@ export default function MarketsPage() {
 								</div>
 							);
 						})}
+					</div>
+				)}
+			</div>
+
+			<div className="card space-y-2">
+				<h2 className="section-title">Transaction log</h2>
+				{log.length === 0 ? (
+					<p className="text-text-muted text-xs">No events yet.</p>
+				) : (
+					<div className="space-y-1 text-xs font-mono max-h-64 overflow-y-auto">
+						{log.map((entry) => (
+							<div key={entry.id} className={levelClass(entry.level)}>
+								<span className="text-text-muted">[{entry.ts}]</span> {entry.text}
+							</div>
+						))}
 					</div>
 				)}
 			</div>

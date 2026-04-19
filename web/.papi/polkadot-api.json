@@ -9,6 +9,15 @@
     "bulletin": {
       "wsUrl": "wss://paseo-bulletin-rpc.polkadot.io",
       "metadata": ".papi/metadata/bulletin.scale"
+    },
+    "paseoHub": {
+      "wsUrl": "wss://asset-hub-paseo-rpc.n.dwellir.com",
+      "metadata": ".papi/metadata/paseoHub.scale",
+      "genesis": "0xd6eec26135305a8ad257a20d003357284c8aa03d0bdb2b357ab0a22371e11ef2",
+      "codeHash": "0x3b36085f46d6213d6f5a2fb26415d7c46da8e397977f2f7404ac431931ab5ae6"
     }
+  },
+  "sol": {
+    "predictionMarket": ".papi/contracts/predictionMarket.json"
   }
 }

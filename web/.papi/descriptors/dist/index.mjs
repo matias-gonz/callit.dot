@@ -1,3 +1,7 @@
+import {
+  __export
+} from "./chunk-7P6ASYW6.mjs";
+
 // .papi/descriptors/src/common.ts
 var table = new Uint8Array(128);
 for (let i = 0; i < 64; i++) table[i < 26 ? i + 65 : i < 52 ? i + 71 : i < 62 ? i - 4 : i * 4 - 205] = i;
@@ -14,32 +18,46 @@ var toBinary = (base64) => {
 };
 
 // .papi/descriptors/src/callit.ts
-var descriptorValues = import("./descriptors-UPZLQ5DQ.mjs").then((module) => module["Callit"]);
-var metadataTypes = import("./metadataTypes-IELQNSXH.mjs").then(
+var descriptorValues = import("./descriptors-SCOPULBW.mjs").then((module) => module["Callit"]);
+var metadataTypes = import("./metadataTypes-3ANJPBLF.mjs").then(
   (module) => toBinary("default" in module ? module.default : module)
 );
 var asset = {};
 var extensions = {};
-var getMetadata = () => import("./callit_metadata-CVDSKSTO.mjs").then(
+var getMetadata = () => import("./callit_metadata-ZOPUGMVJ.mjs").then(
   (module) => toBinary("default" in module ? module.default : module)
 );
-var genesis = "0x4545454545454545454545454545454545454545454545454545454545454545";
+var genesis = void 0;
 var _allDescriptors = { descriptors: descriptorValues, metadataTypes, asset, extensions, getMetadata, genesis };
 var callit_default = _allDescriptors;
 
 // .papi/descriptors/src/bulletin.ts
-var descriptorValues2 = import("./descriptors-UPZLQ5DQ.mjs").then((module) => module["Bulletin"]);
-var metadataTypes2 = import("./metadataTypes-IELQNSXH.mjs").then(
+var descriptorValues2 = import("./descriptors-SCOPULBW.mjs").then((module) => module["Bulletin"]);
+var metadataTypes2 = import("./metadataTypes-3ANJPBLF.mjs").then(
   (module) => toBinary("default" in module ? module.default : module)
 );
 var asset2 = {};
 var extensions2 = {};
-var getMetadata2 = () => import("./bulletin_metadata-6D4OUQ3Y.mjs").then(
+var getMetadata2 = () => import("./bulletin_metadata-CV52PCEZ.mjs").then(
   (module) => toBinary("default" in module ? module.default : module)
 );
-var genesis2 = "0x744960c32e3a3df5440e1ecd4d34096f1ce2230d7016a5ada8a765d5a622b4ea";
+var genesis2 = void 0;
 var _allDescriptors2 = { descriptors: descriptorValues2, metadataTypes: metadataTypes2, asset: asset2, extensions: extensions2, getMetadata: getMetadata2, genesis: genesis2 };
 var bulletin_default = _allDescriptors2;
+
+// .papi/descriptors/src/paseoHub.ts
+var descriptorValues3 = import("./descriptors-SCOPULBW.mjs").then((module) => module["PaseoHub"]);
+var metadataTypes3 = import("./metadataTypes-3ANJPBLF.mjs").then(
+  (module) => toBinary("default" in module ? module.default : module)
+);
+var asset3 = {};
+var extensions3 = {};
+var getMetadata3 = () => import("./paseoHub_metadata-AECIC2AT.mjs").then(
+  (module) => toBinary("default" in module ? module.default : module)
+);
+var genesis3 = "0xd6eec26135305a8ad257a20d003357284c8aa03d0bdb2b357ab0a22371e11ef2";
+var _allDescriptors3 = { descriptors: descriptorValues3, metadataTypes: metadataTypes3, asset: asset3, extensions: extensions3, getMetadata: getMetadata3, genesis: genesis3 };
+var paseoHub_default = _allDescriptors3;
 
 // .papi/descriptors/src/common-types.ts
 import { _Enum } from "polkadot-api";
@@ -92,13 +110,48 @@ var XcmV4AssetWildAsset = _Enum;
 var TransactionValidityUnknownTransaction = _Enum;
 var TransactionValidityTransactionSource = _Enum;
 var XcmVersionedAsset = _Enum;
+var PreimageEvent = _Enum;
+var PreimagePalletHoldReason = _Enum;
+var CommonClaimsEvent = _Enum;
+var ConvictionVotingVoteAccountVote = _Enum;
+var PreimagesBounded = _Enum;
+var ChildBountiesEvent = _Enum;
+var NominationPoolsPoolState = _Enum;
+var NominationPoolsCommissionClaimPermission = _Enum;
+var NominationPoolsClaimPermission = _Enum;
+var BagsListEvent = _Enum;
+var StakingRewardDestination = _Enum;
+var StakingForcing = _Enum;
+var PreimageOldRequestStatus = _Enum;
+var PreimageRequestStatus = _Enum;
+var GovernanceOrigin = _Enum;
+var WestendRuntimeRuntimeFreezeReason = _Enum;
+var NominationPoolsPalletFreezeReason = _Enum;
+var Version = _Enum;
+var ClaimsStatementKind = _Enum;
+var TreasuryPaymentState = _Enum;
+var ConvictionVotingVoteVoting = _Enum;
+var VotingConviction = _Enum;
+var TraitsScheduleDispatchTime = _Enum;
+var ChildBountyStatus = _Enum;
+var ReferendaTypesCurve = _Enum;
+var NominationPoolsBondExtra = _Enum;
+var StakingPalletConfigOpBig = _Enum;
+var StakingPalletConfigOp = _Enum;
+var NominationPoolsConfigOp = _Enum;
+
+// .papi/descriptors/src/contracts/index.ts
+var contracts_exports = {};
+__export(contracts_exports, {
+  predictionMarket: () => descriptor
+});
+
+// .papi/descriptors/src/contracts/predictionMarket.ts
+var descriptor = { abi: [{ "anonymous": false, "inputs": [{ "indexed": true, "internalType": "uint256", "name": "marketId", "type": "uint256" }, { "indexed": true, "internalType": "address", "name": "creator", "type": "address" }, { "indexed": false, "internalType": "string", "name": "question", "type": "string" }, { "indexed": false, "internalType": "uint256", "name": "resolutionTimestamp", "type": "uint256" }], "name": "MarketCreated", "type": "event" }, { "inputs": [{ "internalType": "string", "name": "question", "type": "string" }, { "internalType": "uint256", "name": "resolutionTimestamp", "type": "uint256" }], "name": "createMarket", "outputs": [{ "internalType": "uint256", "name": "marketId", "type": "uint256" }], "stateMutability": "nonpayable", "type": "function" }, { "inputs": [{ "internalType": "uint256", "name": "marketId", "type": "uint256" }], "name": "getMarket", "outputs": [{ "internalType": "address", "name": "creator", "type": "address" }, { "internalType": "string", "name": "question", "type": "string" }, { "internalType": "uint256", "name": "resolutionTimestamp", "type": "uint256" }, { "internalType": "enum PredictionMarket.State", "name": "state", "type": "uint8" }], "stateMutability": "view", "type": "function" }, { "inputs": [], "name": "getMarketCount", "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }], "stateMutability": "view", "type": "function" }] };
 
 // .papi/descriptors/src/index.ts
-var metadatas = {
-  ["0x447d4444742a8cc86e05b73f06ca1e64a9bee0edcaaf9ef6e934cfe6745cac72"]: callit_default,
-  ["0x1a82e5143be3211ded412b0368b486ce83bd41a80ec95eb267f6c204adda8365"]: bulletin_default
-};
-var getMetadata3 = async (codeHash) => {
+var metadatas = { ["0x3b36085f46d6213d6f5a2fb26415d7c46da8e397977f2f7404ac431931ab5ae6"]: paseoHub_default };
+var getMetadata4 = async (codeHash) => {
   try {
     return await metadatas[codeHash].getMetadata();
   } catch {
@@ -107,21 +160,50 @@ var getMetadata3 = async (codeHash) => {
 };
 export {
   ArithmeticError,
+  BagsListEvent,
   BalanceStatus,
   BalancesAdjustmentDirection,
   BalancesTypesReasons,
+  ChildBountiesEvent,
+  ChildBountyStatus,
+  ClaimsStatementKind,
+  CommonClaimsEvent,
+  ConvictionVotingVoteAccountVote,
+  ConvictionVotingVoteVoting,
   DigestItem,
   DispatchClass,
+  GovernanceOrigin,
   MultiAddress,
+  NominationPoolsBondExtra,
+  NominationPoolsClaimPermission,
+  NominationPoolsCommissionClaimPermission,
+  NominationPoolsConfigOp,
+  NominationPoolsPalletFreezeReason,
+  NominationPoolsPoolState,
   Phase,
+  PreimageEvent,
+  PreimageOldRequestStatus,
+  PreimagePalletHoldReason,
+  PreimageRequestStatus,
+  PreimagesBounded,
+  ReferendaTypesCurve,
+  StakingForcing,
+  StakingPalletConfigOp,
+  StakingPalletConfigOpBig,
+  StakingRewardDestination,
   TokenError,
+  TraitsScheduleDispatchTime,
   TransactionPaymentEvent,
   TransactionPaymentReleases,
   TransactionValidityTransactionSource,
   TransactionValidityUnknownTransaction,
   TransactionalError,
+  TreasuryPaymentState,
   UpgradeGoAhead,
   UpgradeRestriction,
+  Version,
+  VotingConviction,
+  WestendRuntimeRuntimeFreezeReason,
   XcmPalletVersionMigrationStage,
   XcmV2JunctionBodyPart,
   XcmV2MultiassetWildFungibility,
@@ -157,5 +239,7 @@ export {
   XcmVersionedXcm,
   bulletin_default as bulletin,
   callit_default as callit,
-  getMetadata3 as getMetadata
+  contracts_exports as contracts,
+  getMetadata4 as getMetadata,
+  paseoHub_default as paseoHub
 };
