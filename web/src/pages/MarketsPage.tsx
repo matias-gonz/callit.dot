@@ -140,7 +140,6 @@ export default function MarketsPage() {
 	const [hostAddress, setHostAddress] = useState<string | null>(null);
 	const [hostReady, setHostReady] = useState(false);
 	const [hostError, setHostError] = useState<string | null>(null);
-	const [permissionGranted, setPermissionGranted] = useState(false);
 
 	const clientRef = useRef<PolkadotClient | null>(null);
 	const [clientGen, setClientGen] = useState(0);
@@ -181,7 +180,6 @@ export default function MarketsPage() {
 			setHostAddress(null);
 			setHostReady(false);
 			setHostError(null);
-			setPermissionGranted(false);
 
 			const useHost = network === "paseoHub" && accountKind === "host";
 
@@ -302,17 +300,8 @@ export default function MarketsPage() {
 	async function resolveSigner(): Promise<{ signer: PolkadotSigner; origin: string } | null> {
 		if (accountKind === "host") {
 			if (!hostProvider) {
-				pushLog("Host API provider is not ready", "err");
+				pushLog("Host API provider is not ready — open this app inside paseo.li", "err");
 				return null;
-			}
-			if (!permissionGranted) {
-				pushLog("Requesting transaction permission from host…");
-				const ok = await hostProvider.requestTransactionPermission();
-				if (!ok) {
-					pushLog("Host denied the transaction permission", "err");
-					return null;
-				}
-				setPermissionGranted(true);
 			}
 			const signer = hostProvider.getSigner();
 			const origin = hostProvider.getAddress();
@@ -320,6 +309,7 @@ export default function MarketsPage() {
 				pushLog("No account paired in host yet — open your Polkadot App", "err");
 				return null;
 			}
+			pushLog("Sending sign request to your Polkadot App via the host…");
 			return { signer, origin };
 		}
 
