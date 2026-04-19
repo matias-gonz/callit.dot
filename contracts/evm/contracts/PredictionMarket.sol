@@ -21,6 +21,7 @@ contract PredictionMarket is Ownable {
 		bool finalOutcome;
 		address resolver;
 		address disputer;
+		uint256 bond;
 		uint256 disputeDeadline;
 		uint256 yesPool;
 		uint256 noPool;
@@ -82,6 +83,7 @@ contract PredictionMarket is Ownable {
 			finalOutcome: false,
 			resolver: address(0),
 			disputer: address(0),
+			bond: 0,
 			disputeDeadline: 0,
 			yesPool: 0,
 			noPool: 0
@@ -117,6 +119,7 @@ contract PredictionMarket is Ownable {
 		m.state = State.Proposed;
 		m.proposedOutcome = outcome;
 		m.resolver = msg.sender;
+		m.bond = resolutionBond;
 		m.disputeDeadline = block.timestamp + disputeWindow;
 
 		emit MarketResolved(marketId, msg.sender, outcome);
@@ -126,7 +129,7 @@ contract PredictionMarket is Ownable {
 		Market storage m = markets[marketId];
 		require(m.state == State.Proposed, "Market not in Proposed state");
 		require(block.timestamp <= m.disputeDeadline, "Dispute window closed");
-		require(msg.value == resolutionBond, "Wrong bond amount");
+		require(msg.value == m.bond, "Wrong bond amount");
 
 		m.state = State.Disputed;
 		m.disputer = msg.sender;
@@ -143,7 +146,7 @@ contract PredictionMarket is Ownable {
 
 		bool resolverWins = outcome == m.proposedOutcome;
 		address winner = resolverWins ? m.resolver : m.disputer;
-		payable(winner).transfer(2 * resolutionBond);
+		payable(winner).transfer(2 * m.bond);
 
 		emit MarketFinalized(marketId, outcome);
 	}
@@ -154,7 +157,7 @@ contract PredictionMarket is Ownable {
 		if (m.state == State.Proposed && block.timestamp > m.disputeDeadline) {
 			m.state = State.Finalized;
 			m.finalOutcome = m.proposedOutcome;
-			payable(m.resolver).transfer(resolutionBond);
+			payable(m.resolver).transfer(m.bond);
 			emit MarketFinalized(marketId, m.finalOutcome);
 		}
 
