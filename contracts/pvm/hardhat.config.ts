@@ -28,13 +28,9 @@ const config: HardhatUserConfig = {
 				"0x5fb92d6e98884f76de468fa3f6278f8807c48bebc13595d45af5bdc4da702133",
 			],
 		},
-		polkadotTestnet: {
-			url: "https://services.polkadothub-rpc.com/testnet",
-			chainId: 420420417,
-			accounts: [process.env.PRIVATE_KEY || vars.get("PRIVATE_KEY", "")].filter(Boolean),
-		},
 		paseoHub: {
 			url: process.env.PASEO_HUB_ETH_RPC || "https://eth-rpc-testnet.polkadot.io/",
+			chainId: 420420417,
 			polkadot: true,
 			accounts: [process.env.PRIVATE_KEY || vars.get("PRIVATE_KEY", "")].filter(Boolean),
 		},

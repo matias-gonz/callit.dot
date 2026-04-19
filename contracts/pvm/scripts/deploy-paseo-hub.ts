@@ -29,14 +29,26 @@ function loadRootEnv() {
 	}
 }
 
+function stripQuotes(v: string | undefined): string | undefined {
+	if (!v) return v;
+	return v.replace(/^\s*['"](.*)['"]\s*$/s, "$1").trim();
+}
+
 async function main() {
 	loadRootEnv();
 
 	const mnemonic =
-		process.env.DEV_ACCOUNT_SEED || process.env.MNEMONIC || DEV_PHRASE;
+		stripQuotes(process.env.DEV_ACCOUNT_SEED) ||
+		stripQuotes(process.env.MNEMONIC) ||
+		DEV_PHRASE;
 	if (!mnemonic) {
 		throw new Error(
 			"No mnemonic. Set DEV_ACCOUNT_SEED or MNEMONIC in .env (or rely on the dev seed).",
+		);
+	}
+	if (!/^([a-z]+\s+){11,23}[a-z]+$/i.test(mnemonic)) {
+		throw new Error(
+			`Mnemonic does not look like a 12/24-word BIP39 phrase. Got: "${mnemonic.slice(0, 20)}…". If you only have a 0x-private-key, note that pallet-revive.instantiate_with_code needs an sr25519 Substrate mnemonic — not an Ethereum secp256k1 key.`,
 		);
 	}
 	if (mnemonic === DEV_PHRASE) {

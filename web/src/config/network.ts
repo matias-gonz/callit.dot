@@ -3,17 +3,17 @@ const LOCAL_HOSTS = new Set(["localhost", "127.0.0.1"]);
 export const LOCAL_WS_URL = import.meta.env.VITE_LOCAL_WS_URL || "ws://localhost:9944";
 export const LOCAL_ETH_RPC_URL = import.meta.env.VITE_LOCAL_ETH_RPC_URL || "http://localhost:8545";
 
-export const TESTNET_WS_URL = "wss://services.polkadothub-rpc.com/testnet";
-export const TESTNET_ETH_RPC_URL = "https://services.polkadothub-rpc.com/testnet";
+export const PASEO_HUB_WS_URL = "wss://sys.ibp.network/asset-hub-paseo";
+export const PASEO_HUB_ETH_RPC_URL = "https://eth-rpc-testnet.polkadot.io/";
 
-export type NetworkPreset = "local" | "testnet";
+export type NetworkPreset = "local" | "paseoHub";
 
 export function getNetworkKey(ethRpcUrl: string): NetworkPreset {
 	const lower = ethRpcUrl.toLowerCase();
 	if (lower.includes("127.0.0.1") || lower.includes("localhost")) {
 		return "local";
 	}
-	return "testnet";
+	return "paseoHub";
 }
 
 function isLocalHost() {
@@ -25,13 +25,13 @@ function isLocalHost() {
 }
 
 export function getDefaultWsUrl() {
-	return import.meta.env.VITE_WS_URL || (isLocalHost() ? LOCAL_WS_URL : TESTNET_WS_URL);
+	return import.meta.env.VITE_WS_URL || (isLocalHost() ? LOCAL_WS_URL : PASEO_HUB_WS_URL);
 }
 
 export function getDefaultEthRpcUrl() {
 	return (
 		import.meta.env.VITE_ETH_RPC_URL ||
-		(isLocalHost() ? LOCAL_ETH_RPC_URL : TESTNET_ETH_RPC_URL)
+		(isLocalHost() ? LOCAL_ETH_RPC_URL : PASEO_HUB_ETH_RPC_URL)
 	);
 }
 
@@ -42,8 +42,8 @@ export function getNetworkPresetEndpoints(preset: NetworkPreset) {
 				ethRpcUrl: LOCAL_ETH_RPC_URL,
 			}
 		: {
-				wsUrl: TESTNET_WS_URL,
-				ethRpcUrl: TESTNET_ETH_RPC_URL,
+				wsUrl: PASEO_HUB_WS_URL,
+				ethRpcUrl: PASEO_HUB_ETH_RPC_URL,
 			};
 }
 

@@ -96,11 +96,6 @@ async function main() {
 
 	console.log(`Network: ${hre.network.name} (chainId ${chainId})`);
 	console.log(`Deployer: ${deployerAddress}`);
-	if (!networkKey) {
-		throw new Error(
-			`Unknown chainId ${chainId}. Expected 420420421 (local) or 420420417 (Paseo/Polkadot Hub TestNet). Add a mapping in scripts/deployments.ts if this is intended.`,
-		);
-	}
 	console.log(`Writing to deployments.${networkKey}`);
 
 	let data = readDeployments();

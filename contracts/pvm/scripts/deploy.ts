@@ -70,11 +70,6 @@ async function main() {
 
 	console.log(`Network: ${hre.network.name} (chainId ${chainId})`);
 	console.log(`Deployer: ${deployerAddress}`);
-	if (!networkKey) {
-		throw new Error(
-			`Unknown chainId ${chainId}. Expected 420420421 (local) or 420420417 (Paseo/Polkadot Hub TestNet).`,
-		);
-	}
 	console.log(`Writing to deployments.${networkKey}`);
 
 	console.log("Deploying ProofOfExistence (PVM/resolc)...");

@@ -93,7 +93,7 @@ export default function ContractProofOfExistencePage({
 	function missingContractMessage() {
 		return [
 			`Error: No ${contractKind.toUpperCase()} contract was found at this address on ${ethRpcUrl}.`,
-			`Update the address or deploy one with: cd contracts/${contractKind} && npm run deploy:local (local dev) or npm run deploy:testnet (testnet).`,
+			`Update the address or deploy one with: cd contracts/${contractKind} && npm run deploy:local (local dev) or npm run deploy:paseo-hub (Paseo Asset Hub).`,
 		].join(" ");
 	}
 

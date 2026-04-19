@@ -12,6 +12,14 @@ ifneq (,$(wildcard $(ROOT_DIR)/.env))
   export
 endif
 
+# Strip surrounding quotes picked up by Make's `include` (e.g. MNEMONIC="a b c d").
+# patsubst splits on whitespace so it won't handle a quoted multi-word phrase; we
+# just strip every quote char instead. Neither mnemonics nor 0x keys contain them.
+SINGLE_Q := '
+DOUBLE_Q := "
+MNEMONIC    := $(subst $(DOUBLE_Q),,$(subst $(SINGLE_Q),,$(MNEMONIC)))
+PRIVATE_KEY := $(subst $(DOUBLE_Q),,$(subst $(SINGLE_Q),,$(PRIVATE_KEY)))
+
 # Read PRIVATE_KEY / MNEMONIC from hardhat vars file if not already set in env.
 # Hardhat stores vars at a platform-specific path; probe both macOS and Linux locations.
 HARDHAT_VARS_MAC   := $(HOME)/Library/Preferences/hardhat-nodejs/vars.json
@@ -41,11 +49,11 @@ export MNEMONIC
 help:
 	@echo "Callit make targets"
 	@echo ""
-	@echo "  deploy-paseo         Deploy EVM + PVM contracts to Polkadot Hub TestNet (Paseo)"
+	@echo "  deploy-paseo         Deploy EVM + PVM contracts to Paseo Asset Hub (via eth-rpc)"
 	@echo "  deploy-paseo-evm     Deploy ProofOfExistence + PredictionMarket via solc"
 	@echo "  deploy-paseo-pvm     Deploy ProofOfExistence via resolc (PolkaVM)"
-	@echo "  deploy-paseo-hub     Deploy PredictionMarket to Paseo Asset Hub via PAPI"
-	@echo "                       (uses Revive.instantiate_with_code; no eth-rpc needed)"
+	@echo "  deploy-paseo-papi    Deploy PredictionMarket to Paseo Asset Hub via PAPI"
+	@echo "                       (uses Revive.instantiate_with_code; sr25519 mnemonic needed)"
 	@echo "  deploy-frontend      Build the frontend and upload web/dist to IPFS via w3"
 	@echo "  build-frontend       Install deps and run 'vite build' in web/"
 	@echo "  check-key            Verify PRIVATE_KEY is set (prints deploying address)"
@@ -69,23 +77,22 @@ deploy-paseo: check-key deploy-paseo-evm deploy-paseo-pvm
 .PHONY: deploy-paseo-evm
 deploy-paseo-evm: check-key
 	@echo "[1/2] Deploying EVM contracts (ProofOfExistence + PredictionMarket)..."
-	@cd $(EVM_DIR) && npm install --silent && npx hardhat compile --quiet && npx hardhat run scripts/deploy.ts --network polkadotTestnet
+	@cd $(EVM_DIR) && npm install --silent && npx hardhat compile --quiet && npx hardhat run scripts/deploy.ts --network paseoHub
 
 .PHONY: deploy-paseo-pvm
 deploy-paseo-pvm: check-key
 	@echo "[2/2] Deploying PVM contract (ProofOfExistence)..."
-	@cd $(PVM_DIR) && npm install --silent && npx hardhat compile --quiet && npx hardhat run scripts/deploy.ts --network polkadotTestnet
+	@cd $(PVM_DIR) && npm install --silent && npx hardhat compile --network paseoHub --quiet && npx hardhat run scripts/deploy.ts --network paseoHub
 
 # ─── Paseo Asset Hub deploy (PAPI / Revive.instantiate_with_code) ─────────────
+# Use this path when you want to deploy via a Substrate extrinsic (sr25519
+# mnemonic) instead of the eth-rpc/secp256k1 flow above.
 
-.PHONY: deploy-paseo-hub
-deploy-paseo-hub:
-	@if [ -z "$(MNEMONIC)" ] && [ -z "$(DEV_ACCOUNT_SEED)" ]; then \
-		echo "ERROR: No mnemonic. Set MNEMONIC (or DEV_ACCOUNT_SEED) in .env or shell env."; \
-		echo "Get testnet tokens at: https://faucet.polkadot.io/ (select Paseo Asset Hub)"; \
-		exit 1; \
-	fi
+.PHONY: deploy-paseo-papi
+deploy-paseo-papi:
 	@echo "Deploying PredictionMarket to Paseo Asset Hub via PAPI..."
+	@echo "  Mnemonic source: DEV_ACCOUNT_SEED > MNEMONIC > //Alice (fallback)."
+	@echo "  Fund the derived sr25519 address at https://faucet.polkadot.io/ (Paseo Asset Hub)."
 	@cd $(PVM_DIR) && npm install --silent && npx hardhat compile --network paseoHub --quiet && npx hardhat run scripts/deploy-paseo-hub.ts --network paseoHub
 	@echo ""
 	@echo "=== Paseo Asset Hub deployment complete ==="
