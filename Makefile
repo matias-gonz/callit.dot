@@ -44,6 +44,8 @@ help:
 	@echo "  deploy-paseo         Deploy EVM + PVM contracts to Polkadot Hub TestNet (Paseo)"
 	@echo "  deploy-paseo-evm     Deploy ProofOfExistence + PredictionMarket via solc"
 	@echo "  deploy-paseo-pvm     Deploy ProofOfExistence via resolc (PolkaVM)"
+	@echo "  deploy-paseo-hub     Deploy PredictionMarket to Paseo Asset Hub via PAPI"
+	@echo "                       (uses Revive.instantiate_with_code; no eth-rpc needed)"
 	@echo "  deploy-frontend      Build the frontend and upload web/dist to IPFS via w3"
 	@echo "  build-frontend       Install deps and run 'vite build' in web/"
 	@echo "  check-key            Verify PRIVATE_KEY is set (prints deploying address)"
@@ -73,6 +75,21 @@ deploy-paseo-evm: check-key
 deploy-paseo-pvm: check-key
 	@echo "[2/2] Deploying PVM contract (ProofOfExistence)..."
 	@cd $(PVM_DIR) && npm install --silent && npx hardhat compile --quiet && npx hardhat run scripts/deploy.ts --network polkadotTestnet
+
+# ─── Paseo Asset Hub deploy (PAPI / Revive.instantiate_with_code) ─────────────
+
+.PHONY: deploy-paseo-hub
+deploy-paseo-hub:
+	@if [ -z "$(MNEMONIC)" ] && [ -z "$(DEV_ACCOUNT_SEED)" ]; then \
+		echo "ERROR: No mnemonic. Set MNEMONIC (or DEV_ACCOUNT_SEED) in .env or shell env."; \
+		echo "Get testnet tokens at: https://faucet.polkadot.io/ (select Paseo Asset Hub)"; \
+		exit 1; \
+	fi
+	@echo "Deploying PredictionMarket to Paseo Asset Hub via PAPI..."
+	@cd $(PVM_DIR) && npm install --silent && npx hardhat compile --network paseoHub --quiet && npx hardhat run scripts/deploy-paseo-hub.ts --network paseoHub
+	@echo ""
+	@echo "=== Paseo Asset Hub deployment complete ==="
+	@cat $(ROOT_DIR)/deployments.json
 
 # ─── Frontend deploy ──────────────────────────────────────────────────────────
 

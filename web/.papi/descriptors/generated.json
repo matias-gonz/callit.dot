@@ -1,1 +1,1 @@
-{"cliVersion":"0.18.1","whitelist":null,"chains":{"callit":"0xfb28b9cfce0c5b5d38900b376264ac45","bulletin":"0x5c7968c489c7a9fdf8a9e25bec077512"},"contracts":{"ink":{},"sol":{}}}
+{"cliVersion":"0.18.1","whitelist":null,"chains":{"callit":"0xfb28b9cfce0c5b5d38900b376264ac45","bulletin":"0x5c7968c489c7a9fdf8a9e25bec077512","paseoHub":"0xb77d81fe91558aca01b9d7ee3bd43f2c"},"contracts":{"ink":{},"sol":{"predictionMarket":"0x64bbf909701753f3d3208ae8b58e8d9b"}}}

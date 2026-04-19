@@ -40,3 +40,6 @@ contracts/*/ignition/deployments/
 
 # Polkadot SDK binaries (downloaded by scripts into repo-local bin/)
 /bin/
+
+host-api-example/
+product-skills/

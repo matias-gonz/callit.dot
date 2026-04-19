@@ -23,16 +23,19 @@ const config: HardhatUserConfig = {
 	},
 	networks: {
 		local: {
-			// Local node Ethereum RPC endpoint (via eth-rpc adapter)
 			url: process.env.ETH_RPC_HTTP || "http://127.0.0.1:8545",
 			accounts: [
-				// Alice dev account private key
 				"0x5fb92d6e98884f76de468fa3f6278f8807c48bebc13595d45af5bdc4da702133",
 			],
 		},
 		polkadotTestnet: {
 			url: "https://services.polkadothub-rpc.com/testnet",
 			chainId: 420420417,
+			accounts: [process.env.PRIVATE_KEY || vars.get("PRIVATE_KEY", "")].filter(Boolean),
+		},
+		paseoHub: {
+			url: process.env.PASEO_HUB_ETH_RPC || "https://eth-rpc-testnet.polkadot.io/",
+			polkadot: true,
 			accounts: [process.env.PRIVATE_KEY || vars.get("PRIVATE_KEY", "")].filter(Boolean),
 		},
 	},
