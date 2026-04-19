@@ -315,4 +315,91 @@ describe("PredictionMarket (EVM)", function () {
 			expect(args.outcome).to.equal(true);
 		});
 	});
+
+	describe("disputeResolution", function () {
+		async function disputeFixture() {
+			const base = await loadFixture(deployFixture);
+			const deadline = await futureTimestamp(3600);
+			await base.market.write.createMarket(["Will DOT hit $20?", deadline]);
+			await time.increaseTo(deadline);
+			await base.market.write.resolveMarket([0n, true], { value: RESOLUTION_BOND });
+			return { ...base, deadline };
+		}
+
+		it("Should transition state to Disputed", async function () {
+			const { market, otherAccount } = await loadFixture(disputeFixture);
+
+			await market.write.disputeResolution([0n], {
+				account: otherAccount.account,
+				value: RESOLUTION_BOND,
+			});
+
+			const [, , , state] = (await market.read.getMarket([0n])) as MarketTuple;
+			expect(state).to.equal(3);
+		});
+
+		it("Should revert if market is not Proposed", async function () {
+			const { market, otherAccount } = await loadFixture(deployFixture);
+			const deadline = await futureTimestamp(3600);
+			await market.write.createMarket(["open market", deadline]);
+
+			try {
+				await market.write.disputeResolution([0n], {
+					account: otherAccount.account,
+					value: RESOLUTION_BOND,
+				});
+				expect.fail("Should have reverted");
+			} catch (e: unknown) {
+				expect((e as Error).message).to.include("Market not in Proposed state");
+			}
+		});
+
+		it("Should revert after the dispute window closes", async function () {
+			const { market, otherAccount } = await loadFixture(disputeFixture);
+			await time.increase(DISPUTE_WINDOW + 1n);
+
+			try {
+				await market.write.disputeResolution([0n], {
+					account: otherAccount.account,
+					value: RESOLUTION_BOND,
+				});
+				expect.fail("Should have reverted");
+			} catch (e: unknown) {
+				expect((e as Error).message).to.include("Dispute window closed");
+			}
+		});
+
+		it("Should revert with wrong bond amount", async function () {
+			const { market, otherAccount } = await loadFixture(disputeFixture);
+
+			try {
+				await market.write.disputeResolution([0n], {
+					account: otherAccount.account,
+					value: parseEther("0.05"),
+				});
+				expect.fail("Should have reverted");
+			} catch (e: unknown) {
+				expect((e as Error).message).to.include("Wrong bond amount");
+			}
+		});
+
+		it("Should emit DisputeRaised event", async function () {
+			const { market, otherAccount, publicClient } = await loadFixture(disputeFixture);
+
+			const hash = await market.write.disputeResolution([0n], {
+				account: otherAccount.account,
+				value: RESOLUTION_BOND,
+			});
+			const receipt = await publicClient.waitForTransactionReceipt({ hash });
+			const logs = parseEventLogs({
+				abi: market.abi,
+				logs: receipt.logs,
+				eventName: "DisputeRaised",
+			});
+			expect(logs).to.have.lengthOf(1);
+			const args = logs[0].args as { marketId: bigint; disputer: string };
+			expect(args.marketId).to.equal(0n);
+			expect(getAddress(args.disputer)).to.equal(getAddress(otherAccount.account.address));
+		});
+	});
 });
