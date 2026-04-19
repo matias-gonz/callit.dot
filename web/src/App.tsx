@@ -4,16 +4,14 @@ import { useConnectionManagement } from "./hooks/useConnection";
 
 export default function App() {
 	const location = useLocation();
-	const pallets = useChainStore((s) => s.pallets);
 	const connected = useChainStore((s) => s.connected);
 
 	useConnectionManagement();
 
 	const navItems = [
-		{ path: "/", label: "Home", enabled: true },
-		{ path: "/markets", label: "Markets", enabled: pallets.revive === true },
-		{ path: "/evm", label: "EVM PoE", enabled: pallets.revive === true },
-		{ path: "/pvm", label: "PVM PoE", enabled: pallets.revive === true },
+		{ path: "/markets", label: "Markets", enabled: true },
+		{ path: "/evm", label: "EVM PoE", enabled: true },
+		{ path: "/pvm", label: "PVM PoE", enabled: true },
 		{ path: "/accounts", label: "Accounts", enabled: true },
 	];
 
@@ -32,7 +30,7 @@ export default function App() {
 			{/* Navigation */}
 			<nav className="sticky top-0 z-50 border-b border-white/[0.06] backdrop-blur-xl bg-surface-950/80">
 				<div className="max-w-5xl mx-auto px-4 py-3 flex items-center gap-6">
-					<Link to="/" className="flex items-center gap-2.5 shrink-0 group">
+					<Link to="/markets" className="flex items-center gap-2.5 shrink-0 group">
 						<div className="w-7 h-7 rounded-lg bg-gradient-to-br from-polka-500 to-polka-700 flex items-center justify-center shadow-glow transition-shadow group-hover:shadow-glow-lg">
 							<svg viewBox="0 0 16 16" className="w-4 h-4" fill="white">
 								<circle cx="8" cy="3" r="2" />

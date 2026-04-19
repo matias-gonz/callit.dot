@@ -1,10 +1,9 @@
 import { StrictMode, Suspense, lazy } from "react";
 import { createRoot } from "react-dom/client";
-import { HashRouter, Routes, Route } from "react-router-dom";
+import { HashRouter, Routes, Route, Navigate } from "react-router-dom";
 import App from "./App";
 import "./index.css";
 
-const HomePage = lazy(() => import("./pages/HomePage"));
 const MarketsPage = lazy(() => import("./pages/MarketsPage"));
 const EvmContractPage = lazy(() => import("./pages/EvmContractPage"));
 const PvmContractPage = lazy(() => import("./pages/PvmContractPage"));
@@ -26,7 +25,7 @@ createRoot(document.getElementById("root")!).render(
 						index
 						element={
 							<Suspense fallback={routeFallback}>
-								<HomePage />
+								<MarketsPage />
 							</Suspense>
 						}
 					/>
@@ -62,6 +61,7 @@ createRoot(document.getElementById("root")!).render(
 							</Suspense>
 						}
 					/>
+					<Route path="*" element={<Navigate to="/" replace />} />
 				</Route>
 			</Routes>
 		</HashRouter>
