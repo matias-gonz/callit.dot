@@ -402,4 +402,97 @@ describe("PredictionMarket (EVM)", function () {
 			expect(getAddress(args.disputer)).to.equal(getAddress(otherAccount.account.address));
 		});
 	});
+
+	describe("godResolve", function () {
+		async function godResolveFixture() {
+			const base = await loadFixture(deployFixture);
+			const deadline = await futureTimestamp(3600);
+			await base.market.write.createMarket(["Will DOT hit $20?", deadline]);
+			await time.increaseTo(deadline);
+			await base.market.write.resolveMarket([0n, true], {
+				account: base.owner.account,
+				value: RESOLUTION_BOND,
+			});
+			await base.market.write.disputeResolution([0n], {
+				account: base.otherAccount.account,
+				value: RESOLUTION_BOND,
+			});
+			return base;
+		}
+
+		it("Should finalize with owner's chosen outcome", async function () {
+			const { market } = await loadFixture(godResolveFixture);
+
+			await market.write.godResolve([0n, false]);
+
+			const [, , , state] = (await market.read.getMarket([0n])) as MarketTuple;
+			expect(state).to.equal(4);
+		});
+
+		it("Should pay 2x bond to resolver when resolver wins", async function () {
+			const { market, owner, publicClient } = await loadFixture(godResolveFixture);
+
+			const balanceBefore = await publicClient.getBalance({ address: owner.account.address });
+			const hash = await market.write.godResolve([0n, true]);
+			const receipt = await publicClient.waitForTransactionReceipt({ hash });
+			const gasUsed = receipt.gasUsed * receipt.effectiveGasPrice;
+			const balanceAfter = await publicClient.getBalance({ address: owner.account.address });
+
+			expect(balanceAfter - balanceBefore + gasUsed).to.equal(2n * RESOLUTION_BOND);
+		});
+
+		it("Should pay 2x bond to disputer when disputer wins", async function () {
+			const { market, otherAccount, publicClient } = await loadFixture(godResolveFixture);
+
+			const balanceBefore = await publicClient.getBalance({
+				address: otherAccount.account.address,
+			});
+			await market.write.godResolve([0n, false]);
+			const balanceAfter = await publicClient.getBalance({
+				address: otherAccount.account.address,
+			});
+
+			expect(balanceAfter - balanceBefore).to.equal(2n * RESOLUTION_BOND);
+		});
+
+		it("Should revert if caller is not owner", async function () {
+			const { market, otherAccount } = await loadFixture(godResolveFixture);
+
+			try {
+				await market.write.godResolve([0n, true], { account: otherAccount.account });
+				expect.fail("Should have reverted");
+			} catch (e: unknown) {
+				expect((e as Error).message).to.include("OwnableUnauthorizedAccount");
+			}
+		});
+
+		it("Should revert if market is not Disputed", async function () {
+			const { market } = await loadFixture(deployFixture);
+			const deadline = await futureTimestamp(3600);
+			await market.write.createMarket(["open market", deadline]);
+
+			try {
+				await market.write.godResolve([0n, true]);
+				expect.fail("Should have reverted");
+			} catch (e: unknown) {
+				expect((e as Error).message).to.include("Market not disputed");
+			}
+		});
+
+		it("Should emit MarketFinalized event", async function () {
+			const { market, publicClient } = await loadFixture(godResolveFixture);
+
+			const hash = await market.write.godResolve([0n, true]);
+			const receipt = await publicClient.waitForTransactionReceipt({ hash });
+			const logs = parseEventLogs({
+				abi: market.abi,
+				logs: receipt.logs,
+				eventName: "MarketFinalized",
+			});
+			expect(logs).to.have.lengthOf(1);
+			const args = logs[0].args as { marketId: bigint; outcome: boolean };
+			expect(args.marketId).to.equal(0n);
+			expect(args.outcome).to.equal(true);
+		});
+	});
 });

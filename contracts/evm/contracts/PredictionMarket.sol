@@ -18,6 +18,7 @@ contract PredictionMarket is Ownable {
 		uint256 resolutionTimestamp;
 		State state;
 		bool proposedOutcome;
+		bool finalOutcome;
 		address resolver;
 		address disputer;
 		uint256 disputeDeadline;
@@ -60,6 +61,8 @@ contract PredictionMarket is Ownable {
 
 	event DisputeRaised(uint256 indexed marketId, address indexed disputer);
 
+	event MarketFinalized(uint256 indexed marketId, bool outcome);
+
 	function createMarket(
 		string calldata question,
 		uint256 resolutionTimestamp
@@ -74,6 +77,7 @@ contract PredictionMarket is Ownable {
 			resolutionTimestamp: resolutionTimestamp,
 			state: State.Open,
 			proposedOutcome: false,
+			finalOutcome: false,
 			resolver: address(0),
 			disputer: address(0),
 			disputeDeadline: 0,
@@ -126,6 +130,20 @@ contract PredictionMarket is Ownable {
 		m.disputer = msg.sender;
 
 		emit DisputeRaised(marketId, msg.sender);
+	}
+
+	function godResolve(uint256 marketId, bool outcome) external onlyOwner {
+		Market storage m = markets[marketId];
+		require(m.state == State.Disputed, "Market not disputed");
+
+		m.state = State.Finalized;
+		m.finalOutcome = outcome;
+
+		bool resolverWins = outcome == m.proposedOutcome;
+		address winner = resolverWins ? m.resolver : m.disputer;
+		payable(winner).transfer(2 * resolutionBond);
+
+		emit MarketFinalized(marketId, outcome);
 	}
 
 	function getMarket(
