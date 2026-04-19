@@ -88,6 +88,23 @@ export function createPredictionMarketContract(
 	};
 }
 
+type TxObservable = {
+	subscribe: (o: {
+		next: (ev: unknown) => void;
+		error: (e: unknown) => void;
+	}) => { unsubscribe: () => void };
+};
+
+export function mapAccount(
+	typedApi: ReviveSdkTypedApi,
+	signer: PolkadotSigner,
+): TxObservable {
+	const revive = typedApi.tx.Revive as unknown as {
+		map_account: () => { signSubmitAndWatch: (s: PolkadotSigner) => TxObservable };
+	};
+	return revive.map_account().signSubmitAndWatch(signer);
+}
+
 export async function loadMarkets(
 	typedApi: ReviveSdkTypedApi,
 	contractAddress: string,

@@ -6,6 +6,7 @@ import { callit, paseoHub } from "@polkadot-api/descriptors";
 import type { ReviveSdkTypedApi } from "@polkadot-api/sdk-ink";
 import {
 	createPredictionMarketContract,
+	mapAccount,
 	type RawMarket,
 } from "../lib/predictionMarketContract";
 import { sr25519DevAccounts } from "../lib/devSigners";
@@ -326,6 +327,59 @@ export default function MarketsPage() {
 		return { signer: dev.signer, origin: dev.address };
 	}
 
+	function watchTx(
+		obs: {
+			subscribe: (o: {
+				next: (ev: unknown) => void;
+				error: (e: unknown) => void;
+			}) => { unsubscribe: () => void };
+		},
+		label: string,
+	): Promise<void> {
+		return new Promise<void>((resolve, reject) => {
+			let settled = false;
+			const sub = obs.subscribe({
+				next: (raw: unknown) => {
+					const ev = raw as TxEvent;
+					switch (ev.type) {
+						case "signed":
+							pushLog(`${label}: signed ${ev.txHash.slice(0, 18)}…`);
+							break;
+						case "broadcasted":
+							pushLog(`${label}: broadcasted`);
+							break;
+						case "txBestBlocksState":
+							if (ev.found) {
+								pushLog(`${label}: in best block #${ev.block.number}`, "ok");
+								if (!settled) {
+									settled = true;
+									sub.unsubscribe();
+									resolve();
+								}
+							}
+							break;
+						case "finalized":
+							if (!settled) {
+								settled = true;
+								if (ev.ok) {
+									pushLog(`${label}: finalized #${ev.block.number}`, "finalized");
+									resolve();
+								} else {
+									pushLog(`${label}: failed ${ev.dispatchError.type}`, "err");
+									reject(new Error(`${label} failed: ${ev.dispatchError.type}`));
+								}
+							}
+							break;
+					}
+				},
+				error: (err) => {
+					sub.unsubscribe();
+					reject(err);
+				},
+			});
+		});
+	}
+
 	async function createMarket() {
 		if (!contractAddress) {
 			pushLog("Enter a contract address", "err");
@@ -362,6 +416,14 @@ export default function MarketsPage() {
 			) as unknown as ReviveSdkTypedApi;
 			const api = createPredictionMarketContract(typedApi, contractAddress);
 
+			const mapped = await api.isAddressMapped(resolved.origin);
+			if (!mapped) {
+				pushLog(`Account ${shortAddr(resolved.origin)} is not mapped — submitting Revive.map_account…`);
+				const mapObs = mapAccount(typedApi, resolved.signer);
+				await watchTx(mapObs, "map_account");
+				pushLog("Account mapped", "ok");
+			}
+
 			pushLog(`Dry-running createMarket as ${shortAddr(resolved.origin)}…`);
 			const obs = await api.createMarket(
 				trimmed,
@@ -370,57 +432,7 @@ export default function MarketsPage() {
 				resolved.signer,
 			);
 
-			await new Promise<void>((resolve, reject) => {
-				let resolved = false;
-				const sub = obs.subscribe({
-					next: (ev: TxEvent) => {
-						switch (ev.type) {
-							case "signed":
-								pushLog(`Signed tx ${ev.txHash.slice(0, 18)}…`);
-								break;
-							case "broadcasted":
-								pushLog("Broadcasted");
-								break;
-							case "txBestBlocksState":
-								if (ev.found) {
-									pushLog(`In best block #${ev.block.number}`, "ok");
-									if (!resolved) {
-										resolved = true;
-										sub.unsubscribe();
-										resolve();
-									}
-								}
-								break;
-							case "finalized":
-								if (ev.ok) {
-									pushLog(`Finalized in block #${ev.block.number}`, "finalized");
-								} else {
-									pushLog(
-										`Finalized but failed: ${ev.dispatchError.type}`,
-										"err",
-									);
-								}
-								if (!resolved) {
-									resolved = true;
-									if (ev.ok) {
-										resolve();
-									} else {
-										reject(
-											new Error(
-												`Transaction failed: ${ev.dispatchError.type}`,
-											),
-										);
-									}
-								}
-								break;
-						}
-					},
-					error: (err) => {
-						sub.unsubscribe();
-						reject(err);
-					},
-				});
-			});
+			await watchTx(obs, "createMarket");
 
 			pushLog("Market created", "ok");
 			setQuestion("");
