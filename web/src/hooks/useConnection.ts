@@ -10,9 +10,7 @@ let connectId = 0;
 
 async function getCallitDescriptor() {
 	if (!callitDescriptorPromise) {
-		callitDescriptorPromise = import("@polkadot-api/descriptors").then(
-			({ callit }) => callit,
-		);
+		callitDescriptorPromise = import("@polkadot-api/descriptors").then(({ callit }) => callit);
 	}
 
 	return callitDescriptorPromise;
