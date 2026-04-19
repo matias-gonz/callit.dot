@@ -10,8 +10,8 @@
     "compile": "npx hardhat compile",
     "test": "npx hardhat test",
     "deploy:local": "npx hardhat run scripts/deploy.ts --network local",
-    "deploy:testnet": "npx hardhat run scripts/deploy.ts --network polkadotTestnet",
-    "verify": "npx hardhat verify --network polkadotTestnet",
+    "deploy:paseo-hub": "npx hardhat run scripts/deploy.ts --network paseoHub",
+    "verify": "npx hardhat verify --network paseoHub",
     "fmt": "prettier --write 'contracts/**/*.sol' 'scripts/**/*.ts' 'test/**/*.ts' hardhat.config.ts",
     "fmt:check": "prettier --check 'contracts/**/*.sol' 'scripts/**/*.ts' 'test/**/*.ts' hardhat.config.ts"
   },

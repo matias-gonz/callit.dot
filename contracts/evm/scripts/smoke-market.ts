@@ -62,11 +62,6 @@ async function main() {
 	const chainId = await publicClient.getChainId();
 
 	const networkKey = networkKeyForChainId(chainId);
-	if (!networkKey) {
-		throw new Error(
-			`Unknown chainId ${chainId}. Expected 420420421 (local) or 420420417 (Paseo).`,
-		);
-	}
 	const slot = readDeployments()[networkKey];
 	if (!slot.evmPredictionMarket) {
 		throw new Error(

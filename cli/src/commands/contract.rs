@@ -15,10 +15,21 @@ const ALICE_KEY: &str = "0x5fb92d6e98884f76de468fa3f6278f8807c48bebc13595d45af5b
 const BOB_KEY: &str = "0x8075991ce870b93a8870eca0c0f91913d12f47948ca0fd25b49c6fa7cdbeee8b";
 const CHARLIE_KEY: &str = "0x0b6e18cafb6ed99687ec547bd28139cafbd3a4f28014f8640076aba0082bf262";
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Default, Clone)]
 pub struct Deployments {
 	pub evm: Option<String>,
 	pub pvm: Option<String>,
+	#[serde(rename = "evmPredictionMarket", default)]
+	#[allow(dead_code)]
+	pub evm_prediction_market: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+struct DeploymentsFile {
+	#[serde(default)]
+	local: Option<Deployments>,
+	#[serde(default, rename = "paseoHub", alias = "testnet")]
+	paseo_hub: Option<Deployments>,
 }
 
 #[derive(Subcommand)]
@@ -85,10 +96,32 @@ pub fn load_deployments() -> Result<Deployments, Box<dyn std::error::Error>> {
 	for path in &paths {
 		if path.exists() {
 			let content = fs::read_to_string(path)?;
-			return Ok(serde_json::from_str(&content)?);
+			return parse_deployments(&content);
 		}
 	}
 	Err("deployments.json not found. Deploy contracts first.".into())
+}
+
+fn parse_deployments(content: &str) -> Result<Deployments, Box<dyn std::error::Error>> {
+	if let Ok(file) = serde_json::from_str::<DeploymentsFile>(content) {
+		let slot_name = std::env::var("CALLIT_NETWORK").unwrap_or_else(|_| {
+			let rpc = std::env::var("ETH_RPC_HTTP").unwrap_or_default().to_lowercase();
+			if rpc.contains("127.0.0.1") || rpc.contains("localhost") || rpc.is_empty() {
+				"local".to_string()
+			} else {
+				"paseoHub".to_string()
+			}
+		});
+		let picked = match slot_name.as_str() {
+			"local" => file.local,
+			_ => file.paseo_hub,
+		};
+		if let Some(d) = picked {
+			return Ok(d);
+		}
+	}
+	// Fall back to the legacy flat shape so older deployments.json still works.
+	Ok(serde_json::from_str::<Deployments>(content).unwrap_or_default())
 }
 
 pub fn get_contract_address(
@@ -102,7 +135,7 @@ pub fn get_contract_address(
 	};
 	let addr_str = addr.ok_or_else(|| -> Box<dyn std::error::Error> {
         format!(
-            "{} contract not deployed. Run: cd contracts/{} && npm run deploy:local (local dev) or npm run deploy:testnet (testnet).",
+            "{} contract not deployed. Run: cd contracts/{} && npm run deploy:local (local dev) or npm run deploy:paseo-hub (Paseo Asset Hub).",
             contract_type.to_uppercase(),
             contract_type
         )

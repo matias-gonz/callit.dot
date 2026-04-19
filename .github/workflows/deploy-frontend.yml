@@ -1,116 +1,116 @@
 name: Deploy Frontend to DotNS
 
 on:
-  workflow_dispatch:
-    inputs:
-      basename:
-        description: 'DotNS basename (for example: my-hackathon-app)'
-        type: string
-        # TODO: Change this to your own unique .dot domain name!
-        # Lowercase letters, digits, and hyphens only. Cannot start/end with hyphen.
-        # Name must be 9+ letters followed by exactly 2 digits (e.g. "my-cool-project42").
-        default: 'callitmarkets90'
-      skip-cache:
-        description: 'Skip deployment cache and force redeploy'
-        type: boolean
-        default: false
+    workflow_dispatch:
+        inputs:
+            basename:
+                description: "DotNS basename (for example: my-hackathon-app)"
+                type: string
+                # TODO: Change this to your own unique .dot domain name!
+                # Lowercase letters, digits, and hyphens only. Cannot start/end with hyphen.
+                # Name must be 9+ letters followed by exactly 2 digits (e.g. "my-cool-project42").
+                default: "callit00"
+            skip-cache:
+                description: "Skip deployment cache and force redeploy"
+                type: boolean
+                default: false
 
 permissions:
-  contents: read
-  statuses: write
-  id-token: write
-  pull-requests: write
+    contents: read
+    statuses: write
+    id-token: write
+    pull-requests: write
 
 concurrency:
-  group: deploy-frontend-${{ github.ref }}
-  cancel-in-progress: true
+    group: deploy-frontend-${{ github.ref }}
+    cancel-in-progress: true
 
 jobs:
-  check:
-    runs-on: ubuntu-latest
-    name: Check for changes
-    outputs:
-      source-hash: ${{ steps.source-hash.outputs.hash }}
-      cache-hit: ${{ steps.cache-check.outputs.cache-hit }}
-    steps:
-      - uses: actions/checkout@v4
+    check:
+        runs-on: ubuntu-latest
+        name: Check for changes
+        outputs:
+            source-hash: ${{ steps.source-hash.outputs.hash }}
+            cache-hit: ${{ steps.cache-check.outputs.cache-hit }}
+        steps:
+            - uses: actions/checkout@v4
 
-      - name: Compute source hash
-        id: source-hash
-        run: echo "hash=$(git ls-files web/ .github/workflows/deploy-frontend.yml | xargs sha256sum | sha256sum | cut -d' ' -f1)" >> "$GITHUB_OUTPUT"
+            - name: Compute source hash
+              id: source-hash
+              run: echo "hash=$(git ls-files web/ .github/workflows/deploy-frontend.yml | xargs sha256sum | sha256sum | cut -d' ' -f1)" >> "$GITHUB_OUTPUT"
 
-      - name: Check deployment cache
-        id: cache-check
-        uses: actions/cache@v4
+            - name: Check deployment cache
+              id: cache-check
+              uses: actions/cache@v4
+              with:
+                  path: .deployment-marker
+                  key: deployment-${{ steps.source-hash.outputs.hash }}
+                  lookup-only: true
+
+    build:
+        needs: check
+        if: needs.check.outputs.cache-hit != 'true' || inputs.skip-cache
+        runs-on: ubuntu-latest
+        name: Build
+        steps:
+            - uses: actions/checkout@v4
+
+            - uses: actions/setup-node@v4
+              with:
+                  node-version: 22
+                  cache: npm
+                  cache-dependency-path: web/package-lock.json
+
+            - name: Install dependencies
+              working-directory: web
+              run: npm ci
+
+            - name: Cache build
+              id: cache-build
+              uses: actions/cache@v4
+              with:
+                  path: web/dist
+                  key: build-${{ needs.check.outputs.source-hash }}
+
+            - name: Build app
+              if: steps.cache-build.outputs.cache-hit != 'true'
+              working-directory: web
+              run: npm run build
+
+            - uses: actions/upload-artifact@v4
+              with:
+                  name: frontend-build
+                  path: web/dist
+                  retention-days: 1
+
+    deploy:
+        needs: [check, build]
+        if: needs.check.outputs.cache-hit != 'true' || inputs.skip-cache
+        name: Deploy
+        uses: paritytech/dotns-sdk/.github/workflows/deploy.yml@main
         with:
-          path: .deployment-marker
-          key: deployment-${{ steps.source-hash.outputs.hash }}
-          lookup-only: true
+            basename: ${{ inputs.basename }}
+            mode: production
+            artifact-name: frontend-build
+            register-base: true
+            skip-cache: ${{ inputs.skip-cache || false }}
+            max-retries: 3
+        secrets:
+            # Falls back to Alice's dev account if DOTNS_MNEMONIC is not set.
+            # Alice works for free registration on Paseo testnet.
+            dotns-mnemonic: ${{ secrets.DOTNS_MNEMONIC || 'bottom drive obey lake curtain smoke basket hold race lonely fit walk' }}
 
-  build:
-    needs: check
-    if: needs.check.outputs.cache-hit != 'true' || inputs.skip-cache
-    runs-on: ubuntu-latest
-    name: Build
-    steps:
-      - uses: actions/checkout@v4
+    post-deploy:
+        needs: [check, deploy]
+        if: needs.deploy.result == 'success'
+        runs-on: ubuntu-latest
+        name: Mark as deployed
+        steps:
+            - name: Create deployment marker
+              run: echo "deployed" > .deployment-marker
 
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: npm
-          cache-dependency-path: web/package-lock.json
-
-      - name: Install dependencies
-        working-directory: web
-        run: npm ci
-
-      - name: Cache build
-        id: cache-build
-        uses: actions/cache@v4
-        with:
-          path: web/dist
-          key: build-${{ needs.check.outputs.source-hash }}
-
-      - name: Build app
-        if: steps.cache-build.outputs.cache-hit != 'true'
-        working-directory: web
-        run: npm run build
-
-      - uses: actions/upload-artifact@v4
-        with:
-          name: frontend-build
-          path: web/dist
-          retention-days: 1
-
-  deploy:
-    needs: [check, build]
-    if: needs.check.outputs.cache-hit != 'true' || inputs.skip-cache
-    name: Deploy
-    uses: paritytech/dotns-sdk/.github/workflows/deploy.yml@main
-    with:
-      basename: ${{ inputs.basename }}
-      mode: production
-      artifact-name: frontend-build
-      register-base: true
-      skip-cache: ${{ inputs.skip-cache || false }}
-      max-retries: 3
-    secrets:
-      # Falls back to Alice's dev account if DOTNS_MNEMONIC is not set.
-      # Alice works for free registration on Paseo testnet.
-      dotns-mnemonic: ${{ secrets.DOTNS_MNEMONIC || 'bottom drive obey lake curtain smoke basket hold race lonely fit walk' }}
-
-  post-deploy:
-    needs: [check, deploy]
-    if: needs.deploy.result == 'success'
-    runs-on: ubuntu-latest
-    name: Mark as deployed
-    steps:
-      - name: Create deployment marker
-        run: echo "deployed" > .deployment-marker
-
-      - name: Cache deployment marker
-        uses: actions/cache/save@v4
-        with:
-          path: .deployment-marker
-          key: deployment-${{ needs.check.outputs.source-hash }}
+            - name: Cache deployment marker
+              uses: actions/cache/save@v4
+              with:
+                  path: .deployment-marker
+                  key: deployment-${{ needs.check.outputs.source-hash }}

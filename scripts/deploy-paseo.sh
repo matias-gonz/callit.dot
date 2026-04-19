@@ -4,7 +4,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 
-echo "=== Deploy Contracts to Polkadot Hub TestNet (Paseo) ==="
+echo "=== Deploy Contracts to Paseo Asset Hub ==="
 echo ""
 echo "Tip: this is a thin wrapper around 'make deploy-paseo'."
 echo "     Set PRIVATE_KEY via one of:"
