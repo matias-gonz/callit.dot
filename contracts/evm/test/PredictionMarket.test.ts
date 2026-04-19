@@ -3,7 +3,11 @@ import { expect } from "chai";
 import hre from "hardhat";
 import { getAddress, parseEther, parseEventLogs } from "viem";
 
-type MarketTuple = readonly [string, string, bigint, number, bigint, bigint];
+type MarketTuple = readonly [string, string, bigint, number, boolean, bigint, bigint];
+type PositionTuple = readonly [bigint, bigint];
+
+const RESOLUTION_BOND = parseEther("0.1");
+const DISPUTE_WINDOW = 86400n;
 
 type MarketCreatedArgs = {
 	marketId: bigint;
@@ -15,7 +19,10 @@ type MarketCreatedArgs = {
 describe("PredictionMarket (EVM)", function () {
 	async function deployFixture() {
 		const [owner, otherAccount] = await hre.viem.getWalletClients();
-		const market = await hre.viem.deployContract("PredictionMarket");
+		const market = await hre.viem.deployContract("PredictionMarket", [
+			RESOLUTION_BOND,
+			DISPUTE_WINDOW,
+		]);
 		const publicClient = await hre.viem.getPublicClient();
 		return { market, owner, otherAccount, publicClient };
 	}
@@ -129,10 +136,10 @@ describe("PredictionMarket (EVM)", function () {
 
 			await market.write.buyShares([0n, true], { value: amount });
 
-			const [yesDeposit, noDeposit] = await market.read.getUserPosition([
+			const [yesDeposit, noDeposit] = (await market.read.getUserPosition([
 				0n,
 				owner.account.address,
-			]);
+			])) as PositionTuple;
 			expect(yesDeposit).to.equal(amount);
 			expect(noDeposit).to.equal(0n);
 		});
@@ -143,10 +150,10 @@ describe("PredictionMarket (EVM)", function () {
 
 			await market.write.buyShares([0n, false], { value: amount });
 
-			const [yesDeposit, noDeposit] = await market.read.getUserPosition([
+			const [yesDeposit, noDeposit] = (await market.read.getUserPosition([
 				0n,
 				owner.account.address,
-			]);
+			])) as PositionTuple;
 			expect(yesDeposit).to.equal(0n);
 			expect(noDeposit).to.equal(amount);
 		});
@@ -163,7 +170,7 @@ describe("PredictionMarket (EVM)", function () {
 				value: parseEther("1"),
 			});
 
-			const [, , , , yesPool, noPool] = (await market.read.getMarket([0n])) as MarketTuple;
+			const [, , , , , yesPool, noPool] = (await market.read.getMarket([0n])) as MarketTuple;
 			expect(yesPool).to.equal(parseEther("2"));
 			expect(noPool).to.equal(parseEther("1"));
 		});
@@ -174,7 +181,7 @@ describe("PredictionMarket (EVM)", function () {
 			await market.write.buyShares([0n, true], { value: parseEther("1") });
 			await market.write.buyShares([0n, true], { value: parseEther("0.5") });
 
-			const [yesDeposit] = await market.read.getUserPosition([0n, owner.account.address]);
+			const [yesDeposit] = (await market.read.getUserPosition([0n, owner.account.address])) as PositionTuple;
 			expect(yesDeposit).to.equal(parseEther("1.5"));
 		});
 
@@ -221,6 +228,91 @@ describe("PredictionMarket (EVM)", function () {
 			expect(getAddress(args.buyer)).to.equal(getAddress(owner.account.address));
 			expect(args.outcome).to.equal(true);
 			expect(args.amount).to.equal(amount);
+		});
+	});
+
+	describe("resolveMarket", function () {
+		async function resolveFixture() {
+			const base = await loadFixture(deployFixture);
+			const deadline = await futureTimestamp(3600);
+			await base.market.write.createMarket(["Will DOT hit $20?", deadline]);
+			await time.increaseTo(deadline);
+			return { ...base, deadline };
+		}
+
+		it("Should transition state to Proposed", async function () {
+			const { market } = await loadFixture(resolveFixture);
+
+			await market.write.resolveMarket([0n, true], { value: RESOLUTION_BOND });
+
+			const [, , , state] = (await market.read.getMarket([0n])) as MarketTuple;
+			expect(state).to.equal(2);
+		});
+
+		it("Should record the proposed outcome", async function () {
+			const { market } = await loadFixture(resolveFixture);
+
+			await market.write.resolveMarket([0n, false], { value: RESOLUTION_BOND });
+
+			const [, , , , proposedOutcome] = (await market.read.getMarket([0n])) as MarketTuple;
+			expect(proposedOutcome).to.equal(false);
+		});
+
+		it("Should revert before the resolution timestamp", async function () {
+			const { market } = await loadFixture(deployFixture);
+			const deadline = await futureTimestamp(3600);
+			await market.write.createMarket(["too early", deadline]);
+
+			try {
+				await market.write.resolveMarket([0n, true], { value: RESOLUTION_BOND });
+				expect.fail("Should have reverted");
+			} catch (e: unknown) {
+				expect((e as Error).message).to.include("Too early to resolve");
+			}
+		});
+
+		it("Should revert with wrong bond amount", async function () {
+			const { market } = await loadFixture(resolveFixture);
+
+			try {
+				await market.write.resolveMarket([0n, true], { value: parseEther("0.05") });
+				expect.fail("Should have reverted");
+			} catch (e: unknown) {
+				expect((e as Error).message).to.include("Wrong bond amount");
+			}
+		});
+
+		it("Should revert if market is not Open", async function () {
+			const { market } = await loadFixture(resolveFixture);
+			await market.write.resolveMarket([0n, true], { value: RESOLUTION_BOND });
+
+			try {
+				await market.write.resolveMarket([0n, false], { value: RESOLUTION_BOND });
+				expect.fail("Should have reverted");
+			} catch (e: unknown) {
+				expect((e as Error).message).to.include("Market not open");
+			}
+		});
+
+		it("Should emit MarketResolved event", async function () {
+			const { market, owner, publicClient } = await loadFixture(resolveFixture);
+
+			const hash = await market.write.resolveMarket([0n, true], { value: RESOLUTION_BOND });
+			const receipt = await publicClient.waitForTransactionReceipt({ hash });
+			const logs = parseEventLogs({
+				abi: market.abi,
+				logs: receipt.logs,
+				eventName: "MarketResolved",
+			});
+			expect(logs).to.have.lengthOf(1);
+			const args = logs[0].args as {
+				marketId: bigint;
+				resolver: string;
+				outcome: boolean;
+			};
+			expect(args.marketId).to.equal(0n);
+			expect(getAddress(args.resolver)).to.equal(getAddress(owner.account.address));
+			expect(args.outcome).to.equal(true);
 		});
 	});
 });

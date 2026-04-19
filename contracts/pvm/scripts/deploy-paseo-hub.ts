@@ -2,6 +2,7 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 import hre from "hardhat";
 import { createClient, Binary } from "polkadot-api";
+import { encodeAbiParameters, parseAbiParameters, parseEther } from "viem";
 import { getWsProvider } from "polkadot-api/ws-provider/node";
 import { withPolkadotSdkCompat } from "polkadot-api/polkadot-sdk-compat";
 import { getPolkadotSigner } from "polkadot-api/signer";
@@ -80,6 +81,11 @@ async function main() {
 		}
 	}
 
+	const resolutionBond = parseEther(process.env.RESOLUTION_BOND ?? "0.1");
+	const disputeWindow = BigInt(process.env.DISPUTE_WINDOW ?? 86400);
+
+	console.log(`Resolution bond: ${resolutionBond} wei  Dispute window: ${disputeWindow}s`);
+
 	console.log("Compiling PredictionMarket (PVM/resolc)...");
 	await hre.run("compile");
 	const artifact = await hre.artifacts.readArtifact("PredictionMarket");
@@ -92,13 +98,18 @@ async function main() {
 	console.log(`Bytecode size: ${(bytecodeHex.length - 2) / 2} bytes`);
 	const code = Binary.fromHex(bytecodeHex);
 
+	const constructorArgs = encodeAbiParameters(
+		parseAbiParameters("uint256, uint256"),
+		[resolutionBond, disputeWindow],
+	);
+
 	console.log("Deploying PredictionMarket via Revive.instantiate_with_code...");
 	const result = await api.tx.Revive.instantiate_with_code({
 		value: 0n,
 		weight_limit: { ref_time: 500_000_000_000n, proof_size: 500_000n },
 		storage_deposit_limit: 10_000_000_000_000n,
 		code,
-		data: Binary.fromHex("0x"),
+		data: Binary.fromHex(constructorArgs),
 		salt: undefined,
 	}).signAndSubmit(signer);
 

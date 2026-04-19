@@ -3,7 +3,10 @@ import {
 	createPublicClient,
 	createWalletClient,
 	defineChain,
+	encodeAbiParameters,
 	http,
+	parseAbiParameters,
+	parseEther,
 	type PublicClient,
 	type WalletClient,
 } from "viem";
@@ -63,6 +66,34 @@ async function buildClients(): Promise<{
 	return { walletClient, publicClient, deployerAddress: account.address };
 }
 
+async function deployContract(
+	name: string,
+	walletClient: WalletClient,
+	publicClient: PublicClient,
+	constructorData?: `0x${string}`,
+): Promise<string> {
+	const artifact = await hre.artifacts.readArtifact(name);
+	const bytecode = (
+		constructorData
+			? ((artifact.bytecode + constructorData.slice(2)) as `0x${string}`)
+			: (artifact.bytecode as `0x${string}`)
+	);
+
+	const hash = await walletClient.deployContract({
+		account: walletClient.account!,
+		chain: walletClient.chain,
+		abi: artifact.abi,
+		bytecode,
+	});
+
+	const receipt = await publicClient.waitForTransactionReceipt({ hash, timeout: 120_000 });
+	if (!receipt.contractAddress) throw new Error(`Deploy tx ${hash} did not create a contract`);
+	return receipt.contractAddress;
+}
+
+const RESOLUTION_BOND = parseEther(process.env.RESOLUTION_BOND ?? "0.1");
+const DISPUTE_WINDOW = BigInt(process.env.DISPUTE_WINDOW ?? 86400);
+
 async function main() {
 	const { walletClient, publicClient, deployerAddress } = await buildClients();
 	const chainId = await publicClient.getChainId();
@@ -72,29 +103,23 @@ async function main() {
 	console.log(`Deployer: ${deployerAddress}`);
 	console.log(`Writing to deployments.${networkKey}`);
 
-	console.log("Deploying ProofOfExistence (PVM/resolc)...");
-	const artifact = await hre.artifacts.readArtifact("ProofOfExistence");
-
-	const hash = await walletClient.deployContract({
-		account: walletClient.account!,
-		chain: walletClient.chain,
-		abi: artifact.abi,
-		bytecode: artifact.bytecode as `0x${string}`,
-	});
-
-	const receipt = await publicClient.waitForTransactionReceipt({
-		hash,
-		timeout: 120_000,
-	});
-
-	if (!receipt.contractAddress) {
-		throw new Error(`Deploy tx ${hash} did not create a contract`);
-	}
-
-	console.log(`  → ${receipt.contractAddress}`);
-
 	let data = readDeployments();
-	data = updateContract(data, networkKey, "pvm", receipt.contractAddress);
+
+	console.log("Deploying ProofOfExistence (PVM/resolc)...");
+	const poeAddress = await deployContract("ProofOfExistence", walletClient, publicClient);
+	console.log(`  → ${poeAddress}`);
+	data = updateContract(data, networkKey, "pvm", poeAddress);
+
+	console.log("Deploying PredictionMarket (PVM/resolc)...");
+	console.log(`  bond: ${RESOLUTION_BOND} wei  window: ${DISPUTE_WINDOW}s`);
+	const predictionMarketArgs = encodeAbiParameters(
+		parseAbiParameters("uint256, uint256"),
+		[RESOLUTION_BOND, DISPUTE_WINDOW],
+	);
+	const pmAddress = await deployContract("PredictionMarket", walletClient, publicClient, predictionMarketArgs);
+	console.log(`  → ${pmAddress}`);
+	data = updateContract(data, networkKey, "evmPredictionMarket", pmAddress);
+
 	writeDeployments(data);
 	console.log("Updated deployments.json");
 }

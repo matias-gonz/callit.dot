@@ -3,7 +3,10 @@ import {
 	createPublicClient,
 	createWalletClient,
 	defineChain,
+	encodeAbiParameters,
 	http,
+	parseAbiParameters,
+	parseEther,
 	type PublicClient,
 	type WalletClient,
 } from "viem";
@@ -68,14 +71,20 @@ async function deploy(
 	name: string,
 	walletClient: WalletClient,
 	publicClient: PublicClient,
+	constructorData?: `0x${string}`,
 ): Promise<string> {
 	const artifact = await hre.artifacts.readArtifact(name);
+	const bytecode = (
+		constructorData
+			? ((artifact.bytecode + constructorData.slice(2)) as `0x${string}`)
+			: (artifact.bytecode as `0x${string}`)
+	);
 
 	const hash = await walletClient.deployContract({
 		account: walletClient.account!,
 		chain: walletClient.chain,
 		abi: artifact.abi,
-		bytecode: artifact.bytecode as `0x${string}`,
+		bytecode,
 	});
 
 	const receipt = await publicClient.waitForTransactionReceipt({
@@ -89,6 +98,9 @@ async function deploy(
 	return receipt.contractAddress;
 }
 
+const RESOLUTION_BOND = parseEther(process.env.RESOLUTION_BOND ?? "0.1");
+const DISPUTE_WINDOW = BigInt(process.env.DISPUTE_WINDOW ?? 86400);
+
 async function main() {
 	const { walletClient, publicClient, deployerAddress } = await buildClients();
 	const chainId = await publicClient.getChainId();
@@ -97,20 +109,24 @@ async function main() {
 	console.log(`Network: ${hre.network.name} (chainId ${chainId})`);
 	console.log(`Deployer: ${deployerAddress}`);
 	console.log(`Writing to deployments.${networkKey}`);
+	console.log(`Resolution bond: ${RESOLUTION_BOND} wei  Dispute window: ${DISPUTE_WINDOW}s`);
+
+	const predictionMarketArgs = encodeAbiParameters(
+		parseAbiParameters("uint256, uint256"),
+		[RESOLUTION_BOND, DISPUTE_WINDOW],
+	);
 
 	let data = readDeployments();
 
-	const contracts: Array<{ name: string; key: keyof NetworkDeployments }> = [
-		{ name: "ProofOfExistence", key: "evm" },
-		{ name: "PredictionMarket", key: "evmPredictionMarket" },
-	];
+	console.log("Deploying ProofOfExistence (EVM/solc)...");
+	const poeAddress = await deploy("ProofOfExistence", walletClient, publicClient);
+	console.log(`  → ${poeAddress}`);
+	data = updateContract(data, networkKey, "evm", poeAddress);
 
-	for (const { name, key } of contracts) {
-		console.log(`Deploying ${name} (EVM/solc)...`);
-		const address = await deploy(name, walletClient, publicClient);
-		console.log(`  → ${address}`);
-		data = updateContract(data, networkKey, key, address);
-	}
+	console.log("Deploying PredictionMarket (EVM/solc)...");
+	const pmAddress = await deploy("PredictionMarket", walletClient, publicClient, predictionMarketArgs);
+	console.log(`  → ${pmAddress}`);
+	data = updateContract(data, networkKey, "evmPredictionMarket", pmAddress);
 
 	writeDeployments(data);
 	console.log("Updated deployments.json");

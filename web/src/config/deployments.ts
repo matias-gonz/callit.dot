@@ -14,8 +14,8 @@ export const deployments: Record<NetworkKey, NetworkDeployments> = {
 		evmPredictionMarket: "0x970951a12f975e6762482aca81e57d5a2a4e73f4",
 	},
 	paseoHub: {
-		evm: "0xd9bf9aab35e725669fcea0a129d43a302f2d8f1a",
-		pvm: "0xdfd20955f3570f3ba2a9bc88f59c279165c4fe51",
-		evmPredictionMarket: "0x59c8f7c9d9209af4f4f52605e3999381b41698ea",
+		evm: "0xd4410802eb45cf1ad6b1f5e81693b4dc9a1c2987",
+		pvm: "0xf9d3bdb49097c775db7ddbda2d2968cea63a4b90",
+		evmPredictionMarket: "0x6a05cc02debe2d03250f9dfc257ded87d1cb4736",
 	},
 };

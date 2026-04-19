@@ -1,7 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.28;
 
-contract PredictionMarket {
+import "@openzeppelin/contracts/access/Ownable.sol";
+
+contract PredictionMarket is Ownable {
 	enum State {
 		Open,
 		Resolving,
@@ -15,14 +17,25 @@ contract PredictionMarket {
 		string question;
 		uint256 resolutionTimestamp;
 		State state;
+		bool proposedOutcome;
+		address resolver;
+		uint256 disputeDeadline;
 		uint256 yesPool;
 		uint256 noPool;
 	}
+
+	uint256 public resolutionBond;
+	uint256 public disputeWindow;
 
 	uint256 private marketCount;
 	mapping(uint256 => Market) private markets;
 	mapping(uint256 => mapping(address => uint256)) private yesDeposits;
 	mapping(uint256 => mapping(address => uint256)) private noDeposits;
+
+	constructor(uint256 initialResolutionBond, uint256 initialDisputeWindow) Ownable(msg.sender) {
+		resolutionBond = initialResolutionBond;
+		disputeWindow = initialDisputeWindow;
+	}
 
 	event MarketCreated(
 		uint256 indexed marketId,
@@ -38,6 +51,12 @@ contract PredictionMarket {
 		uint256 amount
 	);
 
+	event MarketResolved(
+		uint256 indexed marketId,
+		address indexed resolver,
+		bool outcome
+	);
+
 	function createMarket(
 		string calldata question,
 		uint256 resolutionTimestamp
@@ -51,6 +70,9 @@ contract PredictionMarket {
 			question: question,
 			resolutionTimestamp: resolutionTimestamp,
 			state: State.Open,
+			proposedOutcome: false,
+			resolver: address(0),
+			disputeDeadline: 0,
 			yesPool: 0,
 			noPool: 0
 		});
@@ -76,6 +98,20 @@ contract PredictionMarket {
 		emit SharesBought(marketId, msg.sender, outcome, msg.value);
 	}
 
+	function resolveMarket(uint256 marketId, bool outcome) external payable {
+		Market storage m = markets[marketId];
+		require(m.state == State.Open, "Market not open");
+		require(block.timestamp >= m.resolutionTimestamp, "Too early to resolve");
+		require(msg.value == resolutionBond, "Wrong bond amount");
+
+		m.state = State.Proposed;
+		m.proposedOutcome = outcome;
+		m.resolver = msg.sender;
+		m.disputeDeadline = block.timestamp + disputeWindow;
+
+		emit MarketResolved(marketId, msg.sender, outcome);
+	}
+
 	function getMarket(
 		uint256 marketId
 	)
@@ -86,12 +122,21 @@ contract PredictionMarket {
 			string memory question,
 			uint256 resolutionTimestamp,
 			State state,
+			bool proposedOutcome,
 			uint256 yesPool,
 			uint256 noPool
 		)
 	{
 		Market memory m = markets[marketId];
-		return (m.creator, m.question, m.resolutionTimestamp, m.state, m.yesPool, m.noPool);
+		return (
+			m.creator,
+			m.question,
+			m.resolutionTimestamp,
+			m.state,
+			m.proposedOutcome,
+			m.yesPool,
+			m.noPool
+		);
 	}
 
 	function getUserPosition(
