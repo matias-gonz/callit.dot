@@ -12,6 +12,23 @@ export interface RawMarket {
 	question: string;
 	resolutionTimestamp: bigint;
 	state: number;
+	proposedOutcome: boolean;
+	yesPool: bigint;
+	noPool: bigint;
+}
+
+export interface UserPosition {
+	yesDeposit: bigint;
+	noDeposit: bigint;
+}
+
+function formatDryRunError(v: unknown): string {
+	if (!v) return "unknown error";
+	try {
+		return JSON.stringify(v, (_k, val) => (typeof val === "bigint" ? val.toString() : val));
+	} catch {
+		return String(v);
+	}
 }
 
 export function createPredictionMarketContract(
@@ -21,57 +38,87 @@ export function createPredictionMarketContract(
 	const sdk = createReviveSdk(typedApi, contracts.predictionMarket, { atBest: true });
 	const contract = sdk.getContract(contractAddress);
 
+	async function readMessage<T>(
+		message:
+			| "getMarketCount"
+			| "resolutionBond"
+			| "disputeWindow"
+			| "owner"
+			| "getMarket"
+			| "getUserPosition",
+		data: Record<string, unknown> | undefined,
+		origin: string,
+	): Promise<T> {
+		const args = (data
+			? { origin, data }
+			: { origin }) as Parameters<typeof contract.query>[1];
+		const result = await contract.query(message, args);
+		if (!result.success) {
+			throw new Error(`${message} query failed: ${formatDryRunError(result.value)}`);
+		}
+		return result.value.response as T;
+	}
+
+	async function dryRunWrite(
+		message: Parameters<typeof contract.query>[0],
+		data: Record<string, unknown> | undefined,
+		origin: string,
+		value?: bigint,
+	) {
+		const args = {
+			origin,
+			...(data ? { data } : {}),
+			...(value !== undefined ? { value } : {}),
+		} as Parameters<typeof contract.query>[1];
+		const result = await contract.query(message, args);
+		if (!result.success) {
+			throw new Error(`${message} dry-run reverted: ${formatDryRunError(result.value)}`);
+		}
+		return result.value;
+	}
+
 	return {
+		contract,
+
 		isAddressMapped(address: string): Promise<boolean> {
 			return sdk.addressIsMapped(address);
 		},
 
-		async getMarketCount(origin: string = ZERO_READ_ORIGIN): Promise<bigint> {
-			const result = await contract.query("getMarketCount", { origin });
-			if (!result.success) throw new Error("getMarketCount query failed");
-			return result.value.response as bigint;
+		getMarketCount(origin: string = ZERO_READ_ORIGIN): Promise<bigint> {
+			return readMessage<bigint>("getMarketCount", undefined, origin);
+		},
+
+		getResolutionBond(origin: string = ZERO_READ_ORIGIN): Promise<bigint> {
+			return readMessage<bigint>("resolutionBond", undefined, origin);
+		},
+
+		getDisputeWindow(origin: string = ZERO_READ_ORIGIN): Promise<bigint> {
+			return readMessage<bigint>("disputeWindow", undefined, origin);
+		},
+
+		getOwner(origin: string = ZERO_READ_ORIGIN): Promise<string> {
+			return readMessage<string>("owner", undefined, origin);
 		},
 
 		async getMarket(marketId: bigint, origin: string = ZERO_READ_ORIGIN): Promise<RawMarket> {
-			const result = await contract.query("getMarket", {
-				origin,
-				data: { marketId },
-			});
-			if (!result.success) throw new Error(`getMarket(${marketId}) query failed`);
-			const response = result.value.response as {
+			const res = await readMessage<{
 				creator: string;
 				question: string;
 				resolutionTimestamp: bigint;
 				state: number;
-			};
-			return {
-				id: marketId,
-				creator: response.creator,
-				question: response.question,
-				resolutionTimestamp: response.resolutionTimestamp,
-				state: response.state,
-			};
+				proposedOutcome: boolean;
+				yesPool: bigint;
+				noPool: bigint;
+			}>("getMarket", { marketId }, origin);
+			return { id: marketId, ...res };
 		},
 
-		async dryRunCreateMarket(
-			question: string,
-			resolutionTimestamp: bigint,
-			origin: string,
-		) {
-			const result = await contract.query("createMarket", {
-				origin,
-				data: { question, resolutionTimestamp },
-			});
-			if (!result.success) {
-				const v = result.value as Record<string, unknown> | undefined;
-				const detail = v
-					? JSON.stringify(v, (_k, val) =>
-							typeof val === "bigint" ? val.toString() : val,
-						)
-					: "unknown error";
-				throw new Error(`createMarket dry-run reverted: ${detail}`);
-			}
-			return result.value;
+		getUserPosition(
+			marketId: bigint,
+			user: string,
+			origin: string = ZERO_READ_ORIGIN,
+		): Promise<UserPosition> {
+			return readMessage<UserPosition>("getUserPosition", { marketId, user }, origin);
 		},
 
 		async createMarket(
@@ -80,11 +127,66 @@ export function createPredictionMarketContract(
 			origin: string,
 			signer: PolkadotSigner,
 		) {
-			const dryRun = await this.dryRunCreateMarket(question, resolutionTimestamp, origin);
-			return dryRun.send().signSubmitAndWatch(signer);
+			const dry = await dryRunWrite("createMarket", { question, resolutionTimestamp }, origin);
+			return dry.send().signSubmitAndWatch(signer);
 		},
 
-		contract,
+		async buyShares(
+			marketId: bigint,
+			outcome: boolean,
+			value: bigint,
+			origin: string,
+			signer: PolkadotSigner,
+		) {
+			const dry = await dryRunWrite("buyShares", { marketId, outcome }, origin, value);
+			return dry.send().signSubmitAndWatch(signer);
+		},
+
+		async resolveMarket(
+			marketId: bigint,
+			outcome: boolean,
+			bond: bigint,
+			origin: string,
+			signer: PolkadotSigner,
+		) {
+			const dry = await dryRunWrite("resolveMarket", { marketId, outcome }, origin, bond);
+			return dry.send().signSubmitAndWatch(signer);
+		},
+
+		async disputeResolution(
+			marketId: bigint,
+			bond: bigint,
+			origin: string,
+			signer: PolkadotSigner,
+		) {
+			const dry = await dryRunWrite("disputeResolution", { marketId }, origin, bond);
+			return dry.send().signSubmitAndWatch(signer);
+		},
+
+		async godResolve(
+			marketId: bigint,
+			outcome: boolean,
+			origin: string,
+			signer: PolkadotSigner,
+		) {
+			const dry = await dryRunWrite("godResolve", { marketId, outcome }, origin);
+			return dry.send().signSubmitAndWatch(signer);
+		},
+
+		async claimWinnings(marketId: bigint, origin: string, signer: PolkadotSigner) {
+			const dry = await dryRunWrite("claimWinnings", { marketId }, origin);
+			return dry.send().signSubmitAndWatch(signer);
+		},
+
+		async setResolutionBond(amount: bigint, origin: string, signer: PolkadotSigner) {
+			const dry = await dryRunWrite("setResolutionBond", { amount }, origin);
+			return dry.send().signSubmitAndWatch(signer);
+		},
+
+		async setDisputeWindow(duration: bigint, origin: string, signer: PolkadotSigner) {
+			const dry = await dryRunWrite("setDisputeWindow", { duration }, origin);
+			return dry.send().signSubmitAndWatch(signer);
+		},
 	};
 }
 

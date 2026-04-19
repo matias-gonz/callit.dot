@@ -2,11 +2,11 @@
   "local": {
     "evm": "0xc01ee7f10ea4af4673cfff62710e1d7792aba8f3",
     "pvm": "0x962c0940d72e7db6c9a5f81f1ca87d8db2b82a23",
-    "evmPredictionMarket": "0x970951a12f975e6762482aca81e57d5a2a4e73f4"
+    "evmPredictionMarket": "0x5cc307268a1393ab9a764a20dace848ab8275c46"
   },
   "paseoHub": {
-    "evm": "0xd4410802eb45cf1ad6b1f5e81693b4dc9a1c2987",
-    "pvm": "0xf9d3bdb49097c775db7ddbda2d2968cea63a4b90",
-    "evmPredictionMarket": "0x6a05cc02debe2d03250f9dfc257ded87d1cb4736"
+    "evm": "0xf2df7229a237da7f5f21a00b3c7d5b2cbf80b01c",
+    "pvm": "0x813f68310e61e4647c1055de39eef49d0fdba3fd",
+    "evmPredictionMarket": "0xb3d565cc1b459295971d32d7643d555b908183f0"
   }
 }
