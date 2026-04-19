@@ -49,9 +49,7 @@ export function createPredictionMarketContract(
 		data: Record<string, unknown> | undefined,
 		origin: string,
 	): Promise<T> {
-		const args = (data
-			? { origin, data }
-			: { origin }) as Parameters<typeof contract.query>[1];
+		const args = (data ? { origin, data } : { origin }) as Parameters<typeof contract.query>[1];
 		const result = await contract.query(message, args);
 		if (!result.success) {
 			throw new Error(`${message} query failed: ${formatDryRunError(result.value)}`);
@@ -127,7 +125,11 @@ export function createPredictionMarketContract(
 			origin: string,
 			signer: PolkadotSigner,
 		) {
-			const dry = await dryRunWrite("createMarket", { question, resolutionTimestamp }, origin);
+			const dry = await dryRunWrite(
+				"createMarket",
+				{ question, resolutionTimestamp },
+				origin,
+			);
 			return dry.send().signSubmitAndWatch(signer);
 		},
 
@@ -191,16 +193,12 @@ export function createPredictionMarketContract(
 }
 
 type TxObservable = {
-	subscribe: (o: {
-		next: (ev: unknown) => void;
-		error: (e: unknown) => void;
-	}) => { unsubscribe: () => void };
+	subscribe: (o: { next: (ev: unknown) => void; error: (e: unknown) => void }) => {
+		unsubscribe: () => void;
+	};
 };
 
-export function mapAccount(
-	typedApi: ReviveSdkTypedApi,
-	signer: PolkadotSigner,
-): TxObservable {
+export function mapAccount(typedApi: ReviveSdkTypedApi, signer: PolkadotSigner): TxObservable {
 	const revive = typedApi.tx.Revive as unknown as {
 		map_account: () => { signSubmitAndWatch: (s: PolkadotSigner) => TxObservable };
 	};

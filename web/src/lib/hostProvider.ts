@@ -12,9 +12,7 @@ export interface HostProviderResult {
 	client: ReturnType<typeof createClient>;
 	getSigner: () => PolkadotSigner | null;
 	getAddress: () => string | null;
-	subscribeAccounts: (
-		cb: (accounts: Array<{ address: string; name?: string }>) => void,
-	) => void;
+	subscribeAccounts: (cb: (accounts: Array<{ address: string; name?: string }>) => void) => void;
 }
 
 export interface HostProviderOptions {
@@ -31,19 +29,15 @@ export function isInsideHost(): boolean {
 	}
 }
 
-export async function setupHostProvider(
-	options: HostProviderOptions,
-): Promise<HostProviderResult> {
+export async function setupHostProvider(options: HostProviderOptions): Promise<HostProviderResult> {
 	const { genesis, ss58Prefix = 0 } = options;
 	const accountsProvider = createAccountsProvider(sandboxTransport);
 	const addressCodec = AccountId(ss58Prefix);
 
-	await hostApi
-		.permission(enumValue("v1", { tag: "TransactionSubmit", value: undefined }))
-		.match(
-			() => {},
-			(err: unknown) => console.warn("TransactionSubmit permission denied:", err),
-		);
+	await hostApi.permission(enumValue("v1", { tag: "TransactionSubmit", value: undefined })).match(
+		() => {},
+		(err: unknown) => console.warn("TransactionSubmit permission denied:", err),
+	);
 
 	const papiProvider = createPapiProvider(genesis);
 	const client = createClient(papiProvider);

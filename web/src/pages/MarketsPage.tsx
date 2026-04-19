@@ -1,10 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import {
-	createClient,
-	type PolkadotClient,
-	type PolkadotSigner,
-	type TxEvent,
-} from "polkadot-api";
+import { createClient, type PolkadotClient, type PolkadotSigner, type TxEvent } from "polkadot-api";
 import { getWsProvider } from "polkadot-api/ws-provider/web";
 import { withPolkadotSdkCompat } from "polkadot-api/polkadot-sdk-compat";
 import { callit, paseoHub } from "@polkadot-api/descriptors";
@@ -17,11 +12,7 @@ import {
 	type UserPosition,
 } from "../lib/predictionMarketContract";
 import { sr25519DevAccounts } from "../lib/devSigners";
-import {
-	setupHostProvider,
-	isInsideHost,
-	type HostProviderResult,
-} from "../lib/hostProvider";
+import { setupHostProvider, isInsideHost, type HostProviderResult } from "../lib/hostProvider";
 import { deployments } from "../config/deployments";
 
 type MarketsNetworkKey = "local" | "paseoHub";
@@ -64,13 +55,7 @@ const DEV_ACCOUNT_INDEX: Record<Exclude<AccountKind, "host">, number> = {
 	charlie: 2,
 };
 
-const MARKET_STATE_LABELS = [
-	"Open",
-	"Resolving",
-	"Proposed",
-	"Disputed",
-	"Finalized",
-] as const;
+const MARKET_STATE_LABELS = ["Open", "Resolving", "Proposed", "Disputed", "Finalized"] as const;
 
 const STORAGE_KEY = "prediction-market-address";
 const NETWORK_STORAGE_KEY = "markets-network";
@@ -126,24 +111,15 @@ function formatAmount(wei: bigint, symbol: string, digits = 4): string {
 
 function loadStoredNetwork(): MarketsNetworkKey {
 	const stored =
-		typeof localStorage !== "undefined"
-			? localStorage.getItem(NETWORK_STORAGE_KEY)
-			: null;
+		typeof localStorage !== "undefined" ? localStorage.getItem(NETWORK_STORAGE_KEY) : null;
 	if (stored === "local" || stored === "paseoHub") return stored;
 	return "paseoHub";
 }
 
 function loadStoredAccount(): AccountKind {
 	const stored =
-		typeof localStorage !== "undefined"
-			? localStorage.getItem(ACCOUNT_STORAGE_KEY)
-			: null;
-	if (
-		stored === "host" ||
-		stored === "alice" ||
-		stored === "bob" ||
-		stored === "charlie"
-	)
+		typeof localStorage !== "undefined" ? localStorage.getItem(ACCOUNT_STORAGE_KEY) : null;
+	if (stored === "host" || stored === "alice" || stored === "bob" || stored === "charlie")
 		return stored;
 	return "host";
 }
@@ -191,8 +167,7 @@ function deriveContext(
 	const withinDispute = nowSeconds <= disputeDeadlineApprox;
 	const pastDispute = nowSeconds > disputeDeadlineApprox;
 	const totalPool = m.yesPool + m.noPool;
-	const yesOdds =
-		totalPool === 0n ? 0.5 : Number(m.yesPool) / Number(totalPool);
+	const yesOdds = totalPool === 0n ? 0.5 : Number(m.yesPool) / Number(totalPool);
 	return {
 		now: nowSeconds,
 		beforeClose,
@@ -320,10 +295,7 @@ export default function MarketsPage() {
 						return;
 					}
 					clientRef.current = client;
-					pushLog(
-						`Connected to ${networkDef.label} (${networkDef.wsUrl})`,
-						"ok",
-					);
+					pushLog(`Connected to ${networkDef.label} (${networkDef.wsUrl})`, "ok");
 				}
 				if (!cancelled) setClientGen((g) => g + 1);
 			} catch (e) {
@@ -429,10 +401,7 @@ export default function MarketsPage() {
 			} else {
 				setPositions({});
 			}
-			pushLog(
-				`Loaded ${result.length} market${result.length === 1 ? "" : "s"}`,
-				"ok",
-			);
+			pushLog(`Loaded ${result.length} market${result.length === 1 ? "" : "s"}`, "ok");
 		} catch (e) {
 			const msg = e instanceof Error ? e.message : String(e);
 			pushLog(`Failed to load markets: ${msg}`, "err");
@@ -462,10 +431,7 @@ export default function MarketsPage() {
 	} | null> {
 		if (accountKind === "host") {
 			if (!hostProvider) {
-				pushLog(
-					"Host API provider is not ready — open this app inside paseo.li",
-					"err",
-				);
+				pushLog("Host API provider is not ready — open this app inside paseo.li", "err");
 				return null;
 			}
 			const signer = hostProvider.getSigner();
@@ -483,10 +449,9 @@ export default function MarketsPage() {
 
 	function watchTx(
 		obs: {
-			subscribe: (o: {
-				next: (ev: unknown) => void;
-				error: (e: unknown) => void;
-			}) => { unsubscribe: () => void };
+			subscribe: (o: { next: (ev: unknown) => void; error: (e: unknown) => void }) => {
+				unsubscribe: () => void;
+			};
 		},
 		label: string,
 	): Promise<void> {
@@ -516,16 +481,10 @@ export default function MarketsPage() {
 							if (!settled) {
 								settled = true;
 								if (ev.ok) {
-									pushLog(
-										`${label}: finalized #${ev.block.number}`,
-										"finalized",
-									);
+									pushLog(`${label}: finalized #${ev.block.number}`, "finalized");
 									resolve();
 								} else {
-									pushLog(
-										`${label}: failed ${ev.dispatchError.type}`,
-										"err",
-									);
+									pushLog(`${label}: failed ${ev.dispatchError.type}`, "err");
 									reject(new Error(`${label} failed: ${ev.dispatchError.type}`));
 								}
 							}
@@ -564,10 +523,9 @@ export default function MarketsPage() {
 			typedApi: ReviveSdkTypedApi;
 			resolved: { signer: PolkadotSigner; origin: string };
 		}) => Promise<{
-			subscribe: (o: {
-				next: (ev: unknown) => void;
-				error: (e: unknown) => void;
-			}) => { unsubscribe: () => void };
+			subscribe: (o: { next: (ev: unknown) => void; error: (e: unknown) => void }) => {
+				unsubscribe: () => void;
+			};
 		}>,
 	) {
 		if (!contractAddress) {
@@ -648,13 +606,7 @@ export default function MarketsPage() {
 			marketId,
 			`buyShares #${marketId} ${outcome ? "YES" : "NO"}`,
 			async ({ api, resolved }) => {
-				return api.buyShares(
-					marketId,
-					outcome,
-					value,
-					resolved.origin,
-					resolved.signer,
-				);
+				return api.buyShares(marketId, outcome, value, resolved.origin, resolved.signer);
 			},
 		);
 	}
@@ -684,18 +636,14 @@ export default function MarketsPage() {
 			pushLog("resolutionBond not loaded", "err");
 			return;
 		}
-		await runTx(
-			marketId,
-			`disputeResolution #${marketId}`,
-			async ({ api, resolved }) => {
-				return api.disputeResolution(
-					marketId,
-					resolutionBond,
-					resolved.origin,
-					resolved.signer,
-				);
-			},
-		);
+		await runTx(marketId, `disputeResolution #${marketId}`, async ({ api, resolved }) => {
+			return api.disputeResolution(
+				marketId,
+				resolutionBond,
+				resolved.origin,
+				resolved.signer,
+			);
+		});
 	}
 
 	async function godResolve(marketId: bigint, outcome: boolean) {
@@ -709,13 +657,9 @@ export default function MarketsPage() {
 	}
 
 	async function claimWinnings(marketId: bigint) {
-		await runTx(
-			marketId,
-			`claimWinnings #${marketId}`,
-			async ({ api, resolved }) => {
-				return api.claimWinnings(marketId, resolved.origin, resolved.signer);
-			},
-		);
+		await runTx(marketId, `claimWinnings #${marketId}`, async ({ api, resolved }) => {
+			return api.claimWinnings(marketId, resolved.origin, resolved.signer);
+		});
 	}
 
 	async function updateResolutionBond(amountStr: string) {
@@ -751,9 +695,7 @@ export default function MarketsPage() {
 	const stats = useMemo(() => {
 		const origin = activeOrigin?.toLowerCase() ?? "";
 		const open = markets.filter((m) => m.state === 0).length;
-		const mine = origin
-			? markets.filter((m) => m.creator.toLowerCase() === origin).length
-			: 0;
+		const mine = origin ? markets.filter((m) => m.creator.toLowerCase() === origin).length : 0;
 		return { total: markets.length, open, mine };
 	}, [markets, activeOrigin]);
 
@@ -776,10 +718,7 @@ export default function MarketsPage() {
 						winnings — all on-chain via pallet-revive.
 					</p>
 				</div>
-				<SettingsButton
-					open={settingsOpen}
-					onClick={() => setSettingsOpen((v) => !v)}
-				/>
+				<SettingsButton open={settingsOpen} onClick={() => setSettingsOpen((v) => !v)} />
 			</div>
 
 			{settingsOpen && (
@@ -810,8 +749,7 @@ export default function MarketsPage() {
 			{/* Summary row: who am I, what contract */}
 			<div className="card flex flex-wrap items-center gap-x-5 gap-y-2 text-xs text-text-tertiary">
 				<span>
-					Network:{" "}
-					<span className="text-text-secondary">{networkDef.label}</span>
+					Network: <span className="text-text-secondary">{networkDef.label}</span>
 				</span>
 				<span>
 					Account:{" "}
@@ -985,7 +923,16 @@ function SettingsButton({ open, onClick }: { open: boolean; onClick: () => void 
 					: "border-white/[0.08] bg-white/[0.04] text-text-secondary hover:border-white/[0.15] hover:text-text-primary"
 			}`}
 		>
-			<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+			<svg
+				width="18"
+				height="18"
+				viewBox="0 0 24 24"
+				fill="none"
+				stroke="currentColor"
+				strokeWidth="2"
+				strokeLinecap="round"
+				strokeLinejoin="round"
+			>
 				<circle cx="12" cy="12" r="3" />
 				<path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
 			</svg>
@@ -1091,14 +1038,12 @@ function SettingsPanel({
 			<div>
 				<label className="label">Signing account</label>
 				<div className="flex flex-wrap gap-2">
-					{(
-						[
-							{ key: "host" as const, label: "My account (Host)" },
-							{ key: "alice" as const, label: "Alice (dev)" },
-							{ key: "bob" as const, label: "Bob (dev)" },
-							{ key: "charlie" as const, label: "Charlie (dev)" },
-						]
-					).map(({ key, label }) => {
+					{[
+						{ key: "host" as const, label: "My account (Host)" },
+						{ key: "alice" as const, label: "Alice (dev)" },
+						{ key: "bob" as const, label: "Bob (dev)" },
+						{ key: "charlie" as const, label: "Charlie (dev)" },
+					].map(({ key, label }) => {
 						const disabled = key === "host" && network === "local";
 						const active = accountKind === key;
 						return (
@@ -1107,9 +1052,7 @@ function SettingsPanel({
 								disabled={disabled}
 								onClick={() => setAccountKind(key)}
 								title={
-									disabled
-										? "Host API only works on Paseo Asset Hub"
-										: undefined
+									disabled ? "Host API only works on Paseo Asset Hub" : undefined
 								}
 								className={`text-xs px-3 py-1.5 rounded-lg border transition-colors ${
 									disabled
@@ -1181,9 +1124,7 @@ function SettingsPanel({
 						<code className="font-mono text-text-secondary">
 							{shortAddr(ownerAddress)}
 						</code>
-						{isOwner && (
-							<span className="ml-1 text-accent-purple">(that's you)</span>
-						)}
+						{isOwner && <span className="ml-1 text-accent-purple">(that's you)</span>}
 					</p>
 				)}
 			</div>
@@ -1274,8 +1215,7 @@ function MarketCard({
 	onClaim,
 }: MarketCardProps) {
 	const [amount, setAmount] = useState("0.01");
-	const mine =
-		activeOrigin && m.creator.toLowerCase() === activeOrigin.toLowerCase();
+	const mine = activeOrigin && m.creator.toLowerCase() === activeOrigin.toLowerCase();
 	const deadlineDate = new Date(Number(m.resolutionTimestamp) * 1000);
 	const stateLabel = MARKET_STATE_LABELS[m.state] ?? `State ${m.state}`;
 	const yesPct = Math.round(context.yesOdds * 100);
@@ -1301,9 +1241,7 @@ function MarketCard({
 		<div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-4 space-y-3">
 			<div className="flex items-start justify-between gap-3">
 				<div className="space-y-1">
-					<p className="text-text-primary font-medium leading-snug">
-						{m.question}
-					</p>
+					<p className="text-text-primary font-medium leading-snug">{m.question}</p>
 					<div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-text-tertiary">
 						<span
 							className={`inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 ${stateBadgeClass}`}
@@ -1315,15 +1253,9 @@ function MarketCard({
 							<span className="text-text-secondary font-mono">
 								{shortAddr(m.creator)}
 							</span>
-							{mine && (
-								<span className="ml-1 text-accent-purple">(you)</span>
-							)}
+							{mine && <span className="ml-1 text-accent-purple">(you)</span>}
 						</span>
-						<span
-							className={
-								!context.beforeClose ? "text-accent-yellow" : undefined
-							}
-						>
+						<span className={!context.beforeClose ? "text-accent-yellow" : undefined}>
 							Resolves {formatRelative(m.resolutionTimestamp)} (
 							{deadlineDate.toLocaleString()})
 						</span>
@@ -1373,8 +1305,7 @@ function MarketCard({
 					<button
 						className="btn-primary text-xs"
 						style={{
-							background:
-								"linear-gradient(135deg, #34d399 0%, #059669 100%)",
+							background: "linear-gradient(135deg, #34d399 0%, #059669 100%)",
 							boxShadow:
 								"0 1px 2px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.1)",
 						}}
@@ -1386,8 +1317,7 @@ function MarketCard({
 					<button
 						className="btn-primary text-xs"
 						style={{
-							background:
-								"linear-gradient(135deg, #ef4444 0%, #b91c1c 100%)",
+							background: "linear-gradient(135deg, #ef4444 0%, #b91c1c 100%)",
 							boxShadow:
 								"0 1px 2px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.1)",
 						}}
@@ -1404,9 +1334,7 @@ function MarketCard({
 					<p className="text-xs text-text-muted">
 						Trading closed. Propose the outcome by posting a bond of{" "}
 						<span className="text-text-secondary">
-							{resolutionBond != null
-								? formatAmount(resolutionBond, symbol)
-								: "—"}
+							{resolutionBond != null ? formatAmount(resolutionBond, symbol) : "—"}
 						</span>
 						.
 					</p>
@@ -1434,11 +1362,7 @@ function MarketCard({
 					<p className="text-xs text-text-muted">
 						Proposed outcome:{" "}
 						<span
-							className={
-								m.proposedOutcome
-									? "text-accent-green"
-									: "text-accent-red"
-							}
+							className={m.proposedOutcome ? "text-accent-green" : "text-accent-red"}
 						>
 							{m.proposedOutcome ? "YES" : "NO"}
 						</span>
@@ -1535,9 +1459,7 @@ function PoolBar({
 				<span className="text-accent-green">
 					YES {yesPct}% · {formatAmount(yesPool, symbol)}
 				</span>
-				<span className="text-text-muted">
-					Pool: {formatAmount(totalPool, symbol)}
-				</span>
+				<span className="text-text-muted">Pool: {formatAmount(totalPool, symbol)}</span>
 				<span className="text-accent-red">
 					{formatAmount(noPool, symbol)} · NO {noPct}%
 				</span>
