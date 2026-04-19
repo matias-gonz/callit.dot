@@ -15,7 +15,6 @@ export interface HostProviderResult {
 	subscribeAccounts: (
 		cb: (accounts: Array<{ address: string; name?: string }>) => void,
 	) => void;
-	requestTransactionPermission: () => Promise<boolean>;
 }
 
 export interface HostProviderOptions {
@@ -38,6 +37,13 @@ export async function setupHostProvider(
 	const { genesis, ss58Prefix = 0 } = options;
 	const accountsProvider = createAccountsProvider(sandboxTransport);
 	const addressCodec = AccountId(ss58Prefix);
+
+	await hostApi
+		.permission(enumValue("v1", { tag: "TransactionSubmit", value: undefined }))
+		.match(
+			() => {},
+			(err: unknown) => console.warn("TransactionSubmit permission denied:", err),
+		);
 
 	const papiProvider = createPapiProvider(genesis);
 	const client = createClient(papiProvider);
@@ -65,21 +71,8 @@ export async function setupHostProvider(
 
 	const initial = await fetchAccount();
 
-	async function requestTransactionPermission(): Promise<boolean> {
-		return hostApi
-			.permission(enumValue("v1", { tag: "TransactionSubmit", value: undefined }))
-			.match(
-				() => true,
-				(err: unknown) => {
-					console.warn("Transaction permission denied:", err);
-					return false;
-				},
-			);
-	}
-
 	return {
 		client,
-		requestTransactionPermission,
 		getSigner() {
 			if (!currentAccount) return null;
 			return accountsProvider.getNonProductAccountSigner(
