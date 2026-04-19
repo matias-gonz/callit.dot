@@ -6,11 +6,9 @@ import {
 	parseEventLogs,
 } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
-import * as fs from "fs";
-import * as path from "path";
+import { networkKeyForChainId, readDeployments } from "./deployments";
 
 const ETH_RPC = process.env.ETH_RPC_HTTP || "http://127.0.0.1:8545";
-const DEPLOYMENTS_JSON = path.resolve(__dirname, "../../../deployments.json");
 
 const ALICE = privateKeyToAccount(
 	"0x5fb92d6e98884f76de468fa3f6278f8807c48bebc13595d45af5bdc4da702133",
@@ -60,12 +58,22 @@ const abi = [
 ] as const;
 
 async function main() {
-	const { evmPredictionMarket } = JSON.parse(fs.readFileSync(DEPLOYMENTS_JSON, "utf-8"));
-	if (!evmPredictionMarket) throw new Error("evmPredictionMarket not in deployments.json");
-	const address = evmPredictionMarket as `0x${string}`;
-
 	const publicClient = createPublicClient({ transport: http(ETH_RPC) });
 	const chainId = await publicClient.getChainId();
+
+	const networkKey = networkKeyForChainId(chainId);
+	if (!networkKey) {
+		throw new Error(
+			`Unknown chainId ${chainId}. Expected 420420421 (local) or 420420417 (Paseo).`,
+		);
+	}
+	const slot = readDeployments()[networkKey];
+	if (!slot.evmPredictionMarket) {
+		throw new Error(
+			`deployments.${networkKey}.evmPredictionMarket is empty. Deploy first (npm run deploy:local / make deploy-paseo).`,
+		);
+	}
+	const address = slot.evmPredictionMarket as `0x${string}`;
 	const chain = defineChain({
 		id: chainId,
 		name: "Local",

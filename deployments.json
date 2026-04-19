@@ -1,8 +1,8 @@
 {
   "local": {
-    "evm": "0x3469e1dac06611030aece8209f07501e9a7acc69",
-    "pvm": "0x867fb76ba206040ea09e73f38eda307413d4966f",
-    "evmPredictionMarket": "0x7d4567b7257cf869b01a47e8cf0edb3814bdb963"
+    "evm": "0xc01ee7f10ea4af4673cfff62710e1d7792aba8f3",
+    "pvm": "0x962c0940d72e7db6c9a5f81f1ca87d8db2b82a23",
+    "evmPredictionMarket": "0x970951a12f975e6762482aca81e57d5a2a4e73f4"
   },
   "testnet": {
     "evm": "0xd9bf9aab35e725669fcea0a129d43a302f2d8f1a",

@@ -58,16 +58,14 @@ const NETWORK_LABELS: Record<NetworkPreset, string> = {
 
 export default function MarketsPage() {
 	const ethRpcUrl = useChainStore((s) => s.ethRpcUrl);
-	const setWsUrl = useChainStore((s) => s.setWsUrl);
 	const setEthRpcUrl = useChainStore((s) => s.setEthRpcUrl);
 	const network = getNetworkKey(ethRpcUrl);
 	const scopedStorageKey = `${STORAGE_KEY}:${ethRpcUrl}`;
 	const defaultAddress = deployments[network].evmPredictionMarket ?? undefined;
 
 	function switchNetwork(preset: NetworkPreset) {
-		const endpoints = getNetworkPresetEndpoints(preset);
-		setWsUrl(endpoints.wsUrl);
-		setEthRpcUrl(endpoints.ethRpcUrl);
+		const { ethRpcUrl: nextEthRpc } = getNetworkPresetEndpoints(preset);
+		setEthRpcUrl(nextEthRpc);
 	}
 
 	const [contractAddress, setContractAddress] = useState("");
@@ -251,6 +249,10 @@ export default function MarketsPage() {
 					<p className="text-xs text-text-muted mt-1.5">
 						Current: {NETWORK_LABELS[network]} ·{" "}
 						<code className="font-mono">{ethRpcUrl}</code>
+					</p>
+					<p className="text-xs text-text-muted mt-1">
+						This page only uses the Ethereum JSON-RPC endpoint (viem). The Substrate
+						WebSocket isn&apos;t required here, so WS connection errors can be ignored.
 					</p>
 				</div>
 
