@@ -120,7 +120,7 @@ async function main() {
 		predictionMarketArgs,
 	);
 	console.log(`  → ${pmAddress}`);
-	data = updateContract(data, networkKey, "evmPredictionMarket", pmAddress);
+	data = updateContract(data, networkKey, "pvmPredictionMarket", pmAddress);
 
 	writeDeployments(data);
 	console.log("Updated deployments.json");

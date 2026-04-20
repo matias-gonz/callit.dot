@@ -157,9 +157,9 @@ async function main() {
 	console.log(`\nPredictionMarket deployed: ${contractAddress}`);
 
 	let data = readDeployments();
-	data = updateContract(data, "paseoHub", "evmPredictionMarket", contractAddress);
+	data = updateContract(data, "paseoHub", "pvmPredictionMarket", contractAddress);
 	writeDeployments(data);
-	console.log("Updated deployments.paseoHub.evmPredictionMarket");
+	console.log("Updated deployments.paseoHub.pvmPredictionMarket");
 
 	client.destroy();
 }

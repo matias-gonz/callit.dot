@@ -48,6 +48,7 @@ const NETWORKS: Record<MarketsNetworkKey, NetworkDef> = {
 };
 
 type AccountKind = "host" | "alice" | "bob" | "charlie";
+type ContractKind = "evm" | "pvm";
 
 const DEV_ACCOUNT_INDEX: Record<Exclude<AccountKind, "host">, number> = {
 	alice: 0,
@@ -60,6 +61,18 @@ const MARKET_STATE_LABELS = ["Open", "Resolving", "Proposed", "Disputed", "Final
 const STORAGE_KEY = "prediction-market-address";
 const NETWORK_STORAGE_KEY = "markets-network";
 const ACCOUNT_STORAGE_KEY = "markets-account";
+const CONTRACT_KIND_STORAGE_KEY = "markets-contract-kind";
+
+const CONTRACT_KIND_LABELS: Record<ContractKind, string> = {
+	evm: "EVM (solc)",
+	pvm: "PVM (resolc)",
+};
+
+const CONTRACT_KIND_DEPLOY_KEY: Record<ContractKind, "evmPredictionMarket" | "pvmPredictionMarket"> =
+	{
+		evm: "evmPredictionMarket",
+		pvm: "pvmPredictionMarket",
+	};
 
 function toLocalDateTimeInput(date: Date): string {
 	const pad = (n: number) => n.toString().padStart(2, "0");
@@ -124,6 +137,15 @@ function loadStoredAccount(): AccountKind {
 	return "host";
 }
 
+function loadStoredContractKind(): ContractKind {
+	const stored =
+		typeof localStorage !== "undefined"
+			? localStorage.getItem(CONTRACT_KIND_STORAGE_KEY)
+			: null;
+	if (stored === "evm" || stored === "pvm") return stored;
+	return "pvm";
+}
+
 interface LogEntry {
 	id: number;
 	ts: string;
@@ -182,10 +204,12 @@ function deriveContext(
 export default function MarketsPage() {
 	const [network, setNetwork] = useState<MarketsNetworkKey>(loadStoredNetwork);
 	const [accountKind, setAccountKind] = useState<AccountKind>(loadStoredAccount);
+	const [contractKind, setContractKind] = useState<ContractKind>(loadStoredContractKind);
 
 	const networkDef = NETWORKS[network];
-	const scopedStorageKey = `${STORAGE_KEY}:${network}`;
-	const defaultAddress = deployments[networkDef.deployKey].evmPredictionMarket ?? undefined;
+	const scopedStorageKey = `${STORAGE_KEY}:${network}:${contractKind}`;
+	const defaultAddress =
+		deployments[networkDef.deployKey][CONTRACT_KIND_DEPLOY_KEY[contractKind]] ?? undefined;
 
 	const [contractAddress, setContractAddress] = useState("");
 	const [question, setQuestion] = useState("");
@@ -232,6 +256,10 @@ export default function MarketsPage() {
 	useEffect(() => {
 		localStorage.setItem(ACCOUNT_STORAGE_KEY, accountKind);
 	}, [accountKind]);
+
+	useEffect(() => {
+		localStorage.setItem(CONTRACT_KIND_STORAGE_KEY, contractKind);
+	}, [contractKind]);
 
 	useEffect(() => {
 		setContractAddress(localStorage.getItem(scopedStorageKey) || defaultAddress || "");
@@ -727,6 +755,8 @@ export default function MarketsPage() {
 					setNetwork={setNetwork}
 					accountKind={accountKind}
 					setAccountKind={setAccountKind}
+					contractKind={contractKind}
+					setContractKind={setContractKind}
 					networkDef={networkDef}
 					hostError={hostError}
 					hostReady={hostReady}
@@ -775,6 +805,15 @@ export default function MarketsPage() {
 					) : (
 						<span className="text-accent-red">not set</span>
 					)}
+					<span
+						className={`ml-1 rounded-md px-1.5 py-0.5 text-[10px] uppercase tracking-wide ${
+							contractKind === "pvm"
+								? "bg-accent-green/10 text-accent-green"
+								: "bg-accent-purple/10 text-accent-purple"
+						}`}
+					>
+						{contractKind}
+					</span>
 				</span>
 				<span>
 					Bond:{" "}
@@ -945,6 +984,8 @@ interface SettingsPanelProps {
 	setNetwork: (k: MarketsNetworkKey) => void;
 	accountKind: AccountKind;
 	setAccountKind: (k: AccountKind) => void;
+	contractKind: ContractKind;
+	setContractKind: (k: ContractKind) => void;
 	networkDef: NetworkDef;
 	hostError: string | null;
 	hostReady: boolean;
@@ -968,6 +1009,8 @@ function SettingsPanel({
 	setNetwork,
 	accountKind,
 	setAccountKind,
+	contractKind,
+	setContractKind,
 	networkDef,
 	hostError,
 	hostReady,
@@ -1089,6 +1132,36 @@ function SettingsPanel({
 			</div>
 
 			<div>
+				<label className="label">Contract flavor</label>
+				<div className="flex flex-wrap gap-2">
+					{(Object.keys(CONTRACT_KIND_LABELS) as ContractKind[]).map((key) => {
+						const active = contractKind === key;
+						const activeClass =
+							key === "pvm"
+								? "border-accent-green/40 bg-accent-green/15 text-accent-green"
+								: "border-accent-purple/40 bg-accent-purple/15 text-accent-purple";
+						return (
+							<button
+								key={key}
+								onClick={() => setContractKind(key)}
+								className={`text-xs px-3 py-1.5 rounded-lg border transition-colors ${
+									active
+										? activeClass
+										: "border-white/[0.08] bg-white/[0.02] text-text-secondary hover:border-white/[0.15] hover:text-text-primary"
+								}`}
+							>
+								{CONTRACT_KIND_LABELS[key]}
+							</button>
+						);
+					})}
+				</div>
+				<p className="text-xs text-text-muted mt-1.5">
+					Same Solidity source, different bytecode. Calls go through pallet-revive
+					either way.
+				</p>
+			</div>
+
+			<div>
 				<label className="label">Contract Address</label>
 				<div className="flex gap-2">
 					<input
@@ -1109,11 +1182,16 @@ function SettingsPanel({
 				</div>
 				{!defaultAddress && (
 					<p className="text-xs text-accent-yellow mt-1.5">
-						No {networkDef.label} deployment recorded. Deploy with{" "}
+						No {CONTRACT_KIND_LABELS[contractKind]} deployment recorded for{" "}
+						{networkDef.label}. Deploy with{" "}
 						<code className="font-mono">
-							{network === "local"
-								? "cd contracts/pvm && npm run deploy:local"
-								: "make deploy-paseo-hub"}
+							{contractKind === "pvm"
+								? network === "local"
+									? "cd contracts/pvm && npm run deploy:local"
+									: "make deploy-paseo-pvm"
+								: network === "local"
+									? "cd contracts/evm && npm run deploy:local"
+									: "make deploy-paseo-evm"}
 						</code>
 						.
 					</p>
