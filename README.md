@@ -116,6 +116,7 @@ cd contracts/pvm && npx hardhat test
 - [docs/TOOLS.md](docs/TOOLS.md) - All Polkadot stack components used in this template
 - [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) - Deployment guide (GitHub Pages, DotNS, contracts, runtime)
 - [docs/INSTALL.md](docs/INSTALL.md) - Detailed setup instructions
+- [docs/PALLET_REVIVE_NOTES.md](docs/PALLET_REVIVE_NOTES.md) - Gotchas for pallet-revive frontend integration (account mapping, `value` unit conversion)
 
 ## Using Only What You Need
 

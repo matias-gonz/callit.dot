@@ -46,6 +46,7 @@ Students do not need to use every part. Components are intentionally separated s
 - `cli/src/commands/chain.rs` — CLI chain info, block subscription, Statement Store RPC
 - `scripts/common.sh` — Shared script utilities (port config, env setup)
 - `docs/INSTALL.md`, `docs/TOOLS.md`, `docs/DEPLOYMENT.md` — Setup, tooling, and deployment guides
+- `docs/PALLET_REVIVE_NOTES.md` — Frontend integration gotchas: `Revive::map_account` mapping, and `value` unit conversion via `NativeToEthRatio` between native plancks and contract wei
 
 ## Build Commands
 
