@@ -285,6 +285,12 @@ fn ok_json<T: Serialize>(value: &T) -> Result<CallToolResult, McpError> {
 	Ok(CallToolResult::success(vec![Content::text(body)]))
 }
 
+impl Default for CallitServer {
+	fn default() -> Self {
+		Self::new()
+	}
+}
+
 #[tool_router]
 impl CallitServer {
 	pub fn new() -> Self {
