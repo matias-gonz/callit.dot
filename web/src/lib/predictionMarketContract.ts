@@ -286,34 +286,66 @@ export interface ClaimRecord {
 	txHash: `0x${string}`;
 }
 
+const FALLBACK_CHUNK_SIZE = 10_000n;
+
 export async function fetchUserClaims(params: {
 	ethRpcUrl: string;
 	contractAddress: string;
 	user: string;
-	fromBlock?: bigint | "earliest";
+	fromBlock?: bigint;
+	chunkSize?: bigint;
 }): Promise<ClaimRecord[]> {
 	const { ethRpcUrl, contractAddress, user } = params;
 	if (!ethRpcUrl || !contractAddress || !user) return [];
 	const client = getEthClient(ethRpcUrl);
 	const claimant = toEvmAddress(user);
-	const logs = await client.getLogs({
-		address: contractAddress as `0x${string}`,
-		event: WINNINGS_CLAIMED_EVENT,
-		args: { claimant },
-		fromBlock: params.fromBlock ?? "earliest",
-		toBlock: "latest",
-	});
-	return logs
-		.map((log) => {
-			const marketId = log.args.marketId;
-			const amount = log.args.amount;
-			if (marketId == null || amount == null) return null;
-			return {
+	const address = contractAddress as `0x${string}`;
+
+	const latest = await client.getBlockNumber();
+	const fromBlock = params.fromBlock ?? 0n;
+	if (latest < fromBlock) return [];
+
+	const decode = (logs: Awaited<ReturnType<PublicClient["getLogs"]>>): ClaimRecord[] => {
+		const out: ClaimRecord[] = [];
+		for (const log of logs) {
+			const args = (log as unknown as { args?: { marketId?: bigint; amount?: bigint } })
+				.args;
+			const marketId = args?.marketId;
+			const amount = args?.amount;
+			if (marketId == null || amount == null) continue;
+			out.push({
 				marketId,
 				amount,
 				blockNumber: log.blockNumber ?? 0n,
 				txHash: log.transactionHash ?? ("0x" as `0x${string}`),
-			} satisfies ClaimRecord;
-		})
-		.filter((v): v is ClaimRecord => v !== null);
+			});
+		}
+		return out;
+	};
+
+	try {
+		const logs = await client.getLogs({
+			address,
+			event: WINNINGS_CLAIMED_EVENT,
+			args: { claimant },
+			fromBlock,
+			toBlock: latest,
+		});
+		return decode(logs);
+	} catch {
+		const chunkSize = params.chunkSize ?? FALLBACK_CHUNK_SIZE;
+		const all: ClaimRecord[] = [];
+		for (let start = fromBlock; start <= latest; start += chunkSize + 1n) {
+			const end = start + chunkSize > latest ? latest : start + chunkSize;
+			const logs = await client.getLogs({
+				address,
+				event: WINNINGS_CLAIMED_EVENT,
+				args: { claimant },
+				fromBlock: start,
+				toBlock: end,
+			});
+			all.push(...decode(logs));
+		}
+		return all;
+	}
 }
