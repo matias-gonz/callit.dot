@@ -8,23 +8,21 @@
 //!
 //! Required fields on every tool that touches the chain:
 //!
-//! - `eth_rpc_url` — e.g. `http://127.0.0.1:8545` (local dev) or
-//!                   `https://eth-rpc-testnet.polkadot.io/` (Paseo Hub TestNet).
+//! - `eth_rpc_url` — e.g. `http://127.0.0.1:8545` (local dev) or `https://eth-rpc-testnet.polkadot.io/`
+//!   (Paseo Hub TestNet).
 //!
 //! Required on every **write** tool:
 //!
-//! - `signer` — `alice|bob|charlie` (well-known Substrate dev keys in
-//!              Ethereum form), a `0x`-prefixed 32-byte private key, or a
-//!              BIP-39 mnemonic phrase.
+//! - `signer` — `alice|bob|charlie` (well-known Substrate dev keys in Ethereum form), a
+//!   `0x`-prefixed 32-byte private key, or a BIP-39 mnemonic phrase.
 //!
 //! Optional on every tool, with built-in defaults:
 //!
 //! - `kind`          — `evm` or `pvm` (default: `pvm`).
 //! - `account_index` — derivation index for mnemonic signers (default: `0`).
-//! - `network`       — `local` or `paseoHub` slot in `deployments.json`.
-//!                     When omitted, derived from the URL.
-//! - `contract`      — explicit PredictionMarket address; bypasses
-//!                     `deployments.json`.
+//! - `network`       — `local` or `paseoHub` slot in `deployments.json`. When omitted, derived from
+//!   the URL.
+//! - `contract`      — explicit PredictionMarket address; bypasses `deployments.json`.
 
 use alloy::{
 	primitives::{Address, U256},
@@ -377,10 +375,12 @@ impl CallitServer {
 		let address = self.address(args.contract, rpc, net, kind)?;
 		let user_addr: Address = match (args.user.as_deref(), args.signer.as_deref()) {
 			(Some(raw), _) => raw.parse().map_err(invalid_params)?,
-			(None, Some(s)) => api::resolve_signer_for(s, args.account_index)
-				.map_err(invalid_params)?,
-			(None, None) =>
-				return Err(invalid_params("either `user` or `signer` must be provided")),
+			(None, Some(s)) => {
+				api::resolve_signer_for(s, args.account_index).map_err(invalid_params)?
+			},
+			(None, None) => {
+				return Err(invalid_params("either `user` or `signer` must be provided"))
+			},
 		};
 		let provider = self.read_provider(rpc)?;
 		let view = api::get_position(&provider, address, args.market_id, user_addr)
@@ -518,8 +518,7 @@ impl CallitServer {
 		let net = args.network.as_deref();
 		let address = self.address(args.contract, rpc, net, kind)?;
 		let provider = self.write_provider(&args.signer, args.account_index, rpc)?;
-		let outcome =
-			api::set_window(&provider, address, args.seconds).await.map_err(internal)?;
+		let outcome = api::set_window(&provider, address, args.seconds).await.map_err(internal)?;
 		ok_json(&outcome)
 	}
 }
@@ -559,10 +558,7 @@ impl CallitServer {
 impl ServerHandler for CallitServer {
 	fn get_info(&self) -> ServerInfo {
 		ServerInfo::new(ServerCapabilities::builder().enable_tools().build())
-			.with_server_info(Implementation::new(
-				"callit-mcp",
-				env!("CARGO_PKG_VERSION"),
-			))
+			.with_server_info(Implementation::new("callit-mcp", env!("CARGO_PKG_VERSION")))
 			.with_instructions(INSTRUCTIONS)
 	}
 }
