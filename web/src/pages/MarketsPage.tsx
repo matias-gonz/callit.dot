@@ -7,9 +7,7 @@ import type { ReviveSdkTypedApi } from "@polkadot-api/sdk-ink";
 import { formatEther, parseEther } from "viem";
 import {
 	createPredictionMarketContract,
-	fetchUserClaims,
 	mapAccount,
-	type ClaimRecord,
 	type RawMarket,
 	type UserPosition,
 } from "../lib/predictionMarketContract";
@@ -22,7 +20,6 @@ type MarketsNetworkKey = "local" | "paseoHub";
 interface NetworkDef {
 	label: string;
 	wsUrl: string;
-	ethRpcUrl: string;
 	descriptor: typeof callit | typeof paseoHub;
 	genesis?: `0x${string}`;
 	ss58Prefix: number;
@@ -34,7 +31,6 @@ const NETWORKS: Record<MarketsNetworkKey, NetworkDef> = {
 	local: {
 		label: "Local Dev",
 		wsUrl: "ws://127.0.0.1:9944",
-		ethRpcUrl: "http://127.0.0.1:8545",
 		descriptor: callit,
 		ss58Prefix: 42,
 		deployKey: "local",
@@ -43,7 +39,6 @@ const NETWORKS: Record<MarketsNetworkKey, NetworkDef> = {
 	paseoHub: {
 		label: "Paseo Asset Hub",
 		wsUrl: "wss://asset-hub-paseo-rpc.n.dwellir.com",
-		ethRpcUrl: "https://eth-rpc-testnet.polkadot.io/",
 		descriptor: paseoHub,
 		genesis: "0xd6eec26135305a8ad257a20d003357284c8aa03d0bdb2b357ab0a22371e11ef2",
 		ss58Prefix: 0,
@@ -221,7 +216,6 @@ export default function MarketsPage() {
 	const [deadline, setDeadline] = useState(defaultDeadline());
 	const [markets, setMarkets] = useState<RawMarket[]>([]);
 	const [positions, setPositions] = useState<Record<string, UserPosition>>({});
-	const [claims, setClaims] = useState<Record<string, ClaimRecord>>({});
 	const [loading, setLoading] = useState(false);
 	const [submitting, setSubmitting] = useState(false);
 	const [busyMarketId, setBusyMarketId] = useState<bigint | null>(null);
@@ -400,33 +394,6 @@ export default function MarketsPage() {
 		}
 	}, [contractAddress, getApi]);
 
-	const refreshClaims = useCallback(async () => {
-		if (!contractAddress || !activeOrigin) {
-			setClaims({});
-			return;
-		}
-		try {
-			const records = await fetchUserClaims({
-				ethRpcUrl: networkDef.ethRpcUrl,
-				contractAddress,
-				user: activeOrigin,
-			});
-			const map: Record<string, ClaimRecord> = {};
-			for (const r of records) {
-				const key = r.marketId.toString();
-				const prev = map[key];
-				if (!prev || r.blockNumber > prev.blockNumber) {
-					map[key] = r;
-				}
-			}
-			setClaims(map);
-		} catch (e) {
-			const msg = e instanceof Error ? e.message : String(e);
-			pushLog(`Failed to load claim history: ${msg}`, "err");
-			setClaims({});
-		}
-	}, [contractAddress, activeOrigin, networkDef.ethRpcUrl]);
-
 	const loadMarkets = useCallback(async () => {
 		if (!contractAddress) {
 			pushLog("Enter a contract address to load markets", "err");
@@ -462,7 +429,6 @@ export default function MarketsPage() {
 			} else {
 				setPositions({});
 			}
-			await refreshClaims();
 			pushLog(`Loaded ${result.length} market${result.length === 1 ? "" : "s"}`, "ok");
 		} catch (e) {
 			const msg = e instanceof Error ? e.message : String(e);
@@ -471,7 +437,7 @@ export default function MarketsPage() {
 		} finally {
 			setLoading(false);
 		}
-	}, [contractAddress, getApi, activeOrigin, refreshClaims]);
+	}, [contractAddress, getApi, activeOrigin]);
 
 	useEffect(() => {
 		if (clientGen > 0 && contractAddress) {
@@ -480,7 +446,6 @@ export default function MarketsPage() {
 		} else if (!contractAddress) {
 			setMarkets([]);
 			setPositions({});
-			setClaims({});
 			setResolutionBond(null);
 			setDisputeWindow(null);
 			setOwnerAddress(null);
@@ -949,7 +914,6 @@ export default function MarketsPage() {
 								key={m.id.toString()}
 								m={m}
 								position={positions[m.id.toString()]}
-								claim={claims[m.id.toString()]}
 								context={deriveContext(m, disputeWindow, nowSeconds)}
 								activeOrigin={activeOrigin}
 								isOwner={isOwner}
@@ -1298,7 +1262,6 @@ function SettingsPanel({
 interface MarketCardProps {
 	m: RawMarket;
 	position: UserPosition | undefined;
-	claim: ClaimRecord | undefined;
 	context: MarketContext;
 	activeOrigin: string | null;
 	isOwner: boolean;
@@ -1316,7 +1279,6 @@ interface MarketCardProps {
 function MarketCard({
 	m,
 	position,
-	claim,
 	context,
 	activeOrigin,
 	isOwner,
@@ -1497,7 +1459,7 @@ function MarketCard({
 								Dispute
 							</button>
 						)}
-						{!context.withinDispute && !claim && (
+						{!context.withinDispute && (
 							<button
 								className="btn-primary text-xs"
 								disabled={disabled}
@@ -1505,9 +1467,6 @@ function MarketCard({
 							>
 								Finalize &amp; claim
 							</button>
-						)}
-						{!context.withinDispute && claim && (
-							<ClaimedBadge claim={claim} symbol={symbol} />
 						)}
 					</div>
 				</div>
@@ -1541,59 +1500,19 @@ function MarketCard({
 
 			{m.state === 4 && (
 				<div className="flex flex-wrap items-center gap-2">
-					{claim ? (
-						<>
-							<p className="text-xs text-text-muted">Market finalized.</p>
-							<ClaimedBadge claim={claim} symbol={symbol} className="ml-auto" />
-						</>
-					) : (
-						<>
-							<p className="text-xs text-text-muted">
-								Market finalized. Claim any winning position.
-							</p>
-							<button
-								className="btn-primary text-xs ml-auto"
-								disabled={disabled}
-								onClick={() => onClaim(m.id)}
-							>
-								Claim winnings
-							</button>
-						</>
-					)}
+					<p className="text-xs text-text-muted">
+						Market finalized. Claim any winning position.
+					</p>
+					<button
+						className="btn-primary text-xs ml-auto"
+						disabled={disabled}
+						onClick={() => onClaim(m.id)}
+					>
+						Claim winnings
+					</button>
 				</div>
 			)}
 		</div>
-	);
-}
-
-function ClaimedBadge({
-	claim,
-	symbol,
-	className = "",
-}: {
-	claim: ClaimRecord;
-	symbol: string;
-	className?: string;
-}) {
-	return (
-		<span
-			className={`inline-flex items-center gap-1.5 rounded-md border border-accent-green/30 bg-accent-green/10 px-2 py-1 text-xs text-accent-green ${className}`}
-			title={`Claimed in block #${claim.blockNumber.toString()}`}
-		>
-			<svg
-				width="12"
-				height="12"
-				viewBox="0 0 24 24"
-				fill="none"
-				stroke="currentColor"
-				strokeWidth="3"
-				strokeLinecap="round"
-				strokeLinejoin="round"
-			>
-				<polyline points="20 6 9 17 4 12" />
-			</svg>
-			Claimed {formatAmount(claim.amount, symbol)}
-		</span>
 	);
 }
 

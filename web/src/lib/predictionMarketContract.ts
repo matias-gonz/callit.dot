@@ -1,7 +1,6 @@
 import { contracts } from "@polkadot-api/descriptors";
-import { createReviveSdk, ss58ToEthereum, type ReviveSdkTypedApi } from "@polkadot-api/sdk-ink";
+import { createReviveSdk, type ReviveSdkTypedApi } from "@polkadot-api/sdk-ink";
 import { AccountId, type PolkadotSigner } from "polkadot-api";
-import { createPublicClient, http, parseAbiItem, type PublicClient } from "viem";
 
 const evmZeroBytes = new Uint8Array(32);
 evmZeroBytes.fill(0xee, 20);
@@ -255,65 +254,4 @@ export async function loadMarkets(
 	}
 	markets.reverse();
 	return markets;
-}
-
-const WINNINGS_CLAIMED_EVENT = parseAbiItem(
-	"event WinningsClaimed(uint256 indexed marketId, address indexed claimant, uint256 amount)",
-);
-
-const ethClientCache = new Map<string, PublicClient>();
-
-function getEthClient(ethRpcUrl: string): PublicClient {
-	let client = ethClientCache.get(ethRpcUrl);
-	if (!client) {
-		client = createPublicClient({ transport: http(ethRpcUrl) });
-		ethClientCache.set(ethRpcUrl, client);
-	}
-	return client;
-}
-
-function toEvmAddress(address: string): `0x${string}` {
-	if (address.startsWith("0x") && address.length === 42) {
-		return address.toLowerCase() as `0x${string}`;
-	}
-	return ss58ToEthereum(address).asHex() as `0x${string}`;
-}
-
-export interface ClaimRecord {
-	marketId: bigint;
-	amount: bigint;
-	blockNumber: bigint;
-	txHash: `0x${string}`;
-}
-
-export async function fetchUserClaims(params: {
-	ethRpcUrl: string;
-	contractAddress: string;
-	user: string;
-	fromBlock?: bigint | "earliest";
-}): Promise<ClaimRecord[]> {
-	const { ethRpcUrl, contractAddress, user } = params;
-	if (!ethRpcUrl || !contractAddress || !user) return [];
-	const client = getEthClient(ethRpcUrl);
-	const claimant = toEvmAddress(user);
-	const logs = await client.getLogs({
-		address: contractAddress as `0x${string}`,
-		event: WINNINGS_CLAIMED_EVENT,
-		args: { claimant },
-		fromBlock: params.fromBlock ?? "earliest",
-		toBlock: "latest",
-	});
-	return logs
-		.map((log) => {
-			const marketId = log.args.marketId;
-			const amount = log.args.amount;
-			if (marketId == null || amount == null) return null;
-			return {
-				marketId,
-				amount,
-				blockNumber: log.blockNumber ?? 0n,
-				txHash: log.transactionHash ?? ("0x" as `0x${string}`),
-			} satisfies ClaimRecord;
-		})
-		.filter((v): v is ClaimRecord => v !== null);
 }
