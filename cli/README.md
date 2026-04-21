@@ -126,7 +126,7 @@ For transaction-submitting commands, JSON mode emits a `TxOutcome` with `tx_hash
 
 ## Using `callit-cli` as a library
 
-`callit-cli` is published as both a binary and a library. A future MCP server (or any other Rust tool) can depend on it directly and call typed async functions:
+`callit-cli` is published as both a binary and a library. The bundled MCP server (see below) and any other Rust tool can depend on it directly and call typed async functions:
 
 ```rust
 use alloy::primitives::{utils::parse_ether, Address};
@@ -147,6 +147,125 @@ println!("{}", serde_json::to_string_pretty(&outcome)?);
 ```
 
 See [`src/commands/market.rs`](src/commands/market.rs) for the full `api` surface.
+
+## MCP server (`callit-mcp`)
+
+The `cli` crate also ships a second binary, `callit-mcp`, that exposes the
+PredictionMarket contract as an [MCP](https://modelcontextprotocol.io) server
+over stdio. Point any MCP-aware client (Cursor, Claude Desktop, Claude Code,
+the `mcp` CLI, etc.) at the compiled binary and an agent can drive markets
+end-to-end without shelling out.
+
+### Build
+
+```bash
+cargo build --release -p callit-cli --bin callit-mcp
+# binary: ./target/release/callit-mcp
+```
+
+### Configuration
+
+**The server is stateless and reads no environment variables.** Every piece of
+configuration is passed per tool call. A single running server can therefore
+target any chain and act as any identity — the agent decides per call.
+
+#### Required on every chain-touching tool
+
+| Field | Purpose |
+| --- | --- |
+| `eth_rpc_url` | Full JSON-RPC URL, e.g. `http://127.0.0.1:8545` (local) or `https://eth-rpc-testnet.polkadot.io/` (Paseo Hub TestNet). |
+
+#### Required on every write tool
+
+| Field | Purpose |
+| --- | --- |
+| `signer` | Dev name (`alice`/`bob`/`charlie`), 0x-prefixed 32-byte private key, or BIP-39 mnemonic phrase. |
+
+#### Optional (with built-in defaults)
+
+| Field | Default | Purpose |
+| --- | --- | --- |
+| `kind` | `pvm` | Contract flavor: `evm` or `pvm`. |
+| `account_index` | `0` | Derivation index for mnemonic signers. |
+| `network` | auto-derived from `eth_rpc_url` | `local` or `paseoHub` — which slot of `deployments.json` to read the address from. Only relevant when `contract` is omitted. |
+| `contract` | looked up in `deployments.json` | Explicit `0x…` PredictionMarket address. Skips `deployments.json` entirely. |
+
+### Tools exposed
+
+Reads:
+
+- `config` — describe the server's stateless contract: which fields are required, which have defaults, and example values. Takes no arguments.
+- `market_info` — contract owner, current bond, dispute window, market count.
+- `market_list` — every market with id, question, state, pools, deadline.
+- `market_get` — single market by id.
+- `market_get_position` — a user's YES/NO deposits. Pass `user` directly, or `signer` to derive the user address from it.
+
+Writes:
+
+- `market_create` — create a market. `deadline` accepts a unix timestamp or `+30m` / `+12h` / `+7d`.
+- `market_buy` — buy YES/NO shares, `amount` in ETH units.
+- `market_resolve` — propose an outcome (auto-posts the current bond).
+- `market_dispute` — dispute a proposal (auto-matches the bond).
+- `market_god_resolve` — owner-only force resolution.
+- `market_claim` — claim winnings (auto-finalizes after the dispute window).
+- `market_set_bond`, `market_set_window` — owner setters.
+
+### Example calls
+
+Read a market on Paseo Hub PVM:
+
+```json
+{
+  "name": "market_info",
+  "arguments": {
+    "eth_rpc_url": "https://eth-rpc-testnet.polkadot.io/"
+  }
+}
+```
+
+Create a market on local dev as Alice:
+
+```json
+{
+  "name": "market_create",
+  "arguments": {
+    "eth_rpc_url": "http://127.0.0.1:8545",
+    "signer": "alice",
+    "question": "Will it rain tomorrow?",
+    "deadline": "+12h"
+  }
+}
+```
+
+Every tool returns pretty-printed JSON matching the same `MarketView` /
+`PositionView` / `ContractInfoView` / `TxOutcome` types the CLI emits with
+`--json`.
+
+### Wiring it into a client
+
+Cursor / Claude Desktop config (`mcp.json` or equivalent):
+
+```json
+{
+  "mcpServers": {
+    "callit": {
+      "command": "/absolute/path/to/target/release/callit-mcp"
+    }
+  }
+}
+```
+
+No `env` block is needed — the server takes all configuration per call.
+
+Quick smoke test from the shell (initialize + list tools):
+
+```bash
+printf '%s\n%s\n%s\n' \
+  '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-11-25","capabilities":{},"clientInfo":{"name":"smoke","version":"0.0.0"}}}' \
+  '{"jsonrpc":"2.0","method":"notifications/initialized"}' \
+  '{"jsonrpc":"2.0","id":2,"method":"tools/list"}' \
+  | ./target/release/callit-mcp
+```
 
 ## See also
 

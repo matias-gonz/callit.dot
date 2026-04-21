@@ -1,5 +1,8 @@
 use super::{
-	deployments::{load, prediction_market_address, resolve_market_address, ContractKind},
+	deployments::{
+		load, prediction_market_address, resolve_market_address, resolve_market_address_with,
+		ContractKind,
+	},
 	signer::{dev_signers, resolve_signer},
 	PredictionMarket,
 };
@@ -260,11 +263,11 @@ fn build_write_provider(
 		.erased())
 }
 
-fn parse_outcome(s: &str) -> bool {
+pub fn parse_outcome(s: &str) -> bool {
 	matches!(s.to_lowercase().as_str(), "yes" | "true" | "1")
 }
 
-fn parse_deadline(input: &str) -> Result<U256, Box<dyn std::error::Error>> {
+pub fn parse_deadline(input: &str) -> Result<U256, Box<dyn std::error::Error>> {
 	let trimmed = input.trim();
 	if let Some(rest) = trimmed.strip_prefix('+') {
 		let (num_part, unit) =
@@ -289,7 +292,7 @@ fn parse_deadline(input: &str) -> Result<U256, Box<dyn std::error::Error>> {
 	}
 }
 
-fn parse_amount_wei(amount: &str) -> Result<U256, Box<dyn std::error::Error>> {
+pub fn parse_amount_wei(amount: &str) -> Result<U256, Box<dyn std::error::Error>> {
 	Ok(parse_ether(amount)?)
 }
 
@@ -617,7 +620,10 @@ fn emit_tx(
 pub mod api {
 	use super::*;
 
-	pub use super::{ContractInfoView, MarketView, PositionView, TxOutcome};
+	pub use super::{
+		parse_amount_wei, parse_deadline, parse_outcome, ContractInfoView, MarketView,
+		PositionView, TxOutcome,
+	};
 
 	pub fn parse_contract_kind(s: &str) -> Result<ContractKind, Box<dyn std::error::Error>> {
 		ContractKind::parse(s)
@@ -638,12 +644,32 @@ pub mod api {
 		build_write_provider(eth_rpc_url, signer)
 	}
 
+	/// Resolve a signer input (dev name, 0x key, mnemonic) to its Ethereum address only,
+	/// without building a provider. Handy for "use the signer's own address" defaults.
+	pub fn resolve_signer_for(
+		signer_input: &str,
+		account_index: Option<u32>,
+	) -> Result<Address, Box<dyn std::error::Error>> {
+		Ok(resolve_signer(signer_input, account_index)?.address())
+	}
+
 	pub fn address_from(
 		explicit: Option<&str>,
 		eth_rpc_url: &str,
 		kind: ContractKind,
 	) -> Result<Address, Box<dyn std::error::Error>> {
 		resolve_market_address(explicit, eth_rpc_url, kind)
+	}
+
+	/// Like [`address_from`] but with an explicit network override
+	/// (`local` / `paseoHub`) that bypasses URL sniffing and env vars.
+	pub fn address_from_with(
+		explicit: Option<&str>,
+		eth_rpc_url: &str,
+		network_override: Option<&str>,
+		kind: ContractKind,
+	) -> Result<Address, Box<dyn std::error::Error>> {
+		resolve_market_address_with(explicit, eth_rpc_url, network_override, kind)
 	}
 
 	pub async fn info(

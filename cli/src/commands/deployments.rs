@@ -39,6 +39,15 @@ pub fn load_file() -> Result<DeploymentsFile, Box<dyn std::error::Error>> {
 /// Pick which network slot to use. Honors `CALLIT_NETWORK=local|paseoHub` when set,
 /// otherwise falls back to the shape of `eth_rpc_url` (localhost → local, else paseoHub).
 pub fn resolve_network(eth_rpc_url: &str) -> String {
+	resolve_network_with(eth_rpc_url, None)
+}
+
+/// Same as [`resolve_network`] but with an explicit per-call override that
+/// takes precedence over both `CALLIT_NETWORK` and URL sniffing.
+pub fn resolve_network_with(eth_rpc_url: &str, override_network: Option<&str>) -> String {
+	if let Some(explicit) = override_network {
+		return explicit.to_string();
+	}
 	if let Ok(explicit) = std::env::var("CALLIT_NETWORK") {
 		return explicit;
 	}
@@ -51,8 +60,17 @@ pub fn resolve_network(eth_rpc_url: &str) -> String {
 }
 
 pub fn load(eth_rpc_url: &str) -> Result<Deployments, Box<dyn std::error::Error>> {
+	load_with(eth_rpc_url, None)
+}
+
+/// Like [`load`] but lets callers override the network slot explicitly. Useful
+/// for MCP tools that let an agent switch chains per call.
+pub fn load_with(
+	eth_rpc_url: &str,
+	override_network: Option<&str>,
+) -> Result<Deployments, Box<dyn std::error::Error>> {
 	let file = load_file()?;
-	let slot = match resolve_network(eth_rpc_url).as_str() {
+	let slot = match resolve_network_with(eth_rpc_url, override_network).as_str() {
 		"local" => file.local,
 		_ => file.paseo_hub,
 	};
@@ -126,9 +144,20 @@ pub fn resolve_market_address(
 	eth_rpc_url: &str,
 	kind: ContractKind,
 ) -> Result<Address, Box<dyn std::error::Error>> {
+	resolve_market_address_with(explicit, eth_rpc_url, None, kind)
+}
+
+/// Like [`resolve_market_address`] but with an explicit network override that
+/// short-circuits URL sniffing and `CALLIT_NETWORK`.
+pub fn resolve_market_address_with(
+	explicit: Option<&str>,
+	eth_rpc_url: &str,
+	override_network: Option<&str>,
+	kind: ContractKind,
+) -> Result<Address, Box<dyn std::error::Error>> {
 	if let Some(raw) = explicit {
 		return Ok(raw.parse()?);
 	}
-	let deployments = load(eth_rpc_url)?;
+	let deployments = load_with(eth_rpc_url, override_network)?;
 	prediction_market_address(&deployments, kind)
 }
