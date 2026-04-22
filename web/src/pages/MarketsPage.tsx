@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { createClient, type PolkadotClient, type PolkadotSigner, type TxEvent } from "polkadot-api";
 import { getWsProvider } from "polkadot-api/ws-provider/web";
 import { withPolkadotSdkCompat } from "polkadot-api/polkadot-sdk-compat";
@@ -1310,15 +1311,22 @@ function SettingsDrawer({ children, onClose }: { children: React.ReactNode; onCl
 		window.addEventListener("keydown", onKey);
 		return () => window.removeEventListener("keydown", onKey);
 	}, [onClose]);
-	return (
-		<div className="fixed inset-0 z-50 flex">
+	useEffect(() => {
+		const prev = document.body.style.overflow;
+		document.body.style.overflow = "hidden";
+		return () => {
+			document.body.style.overflow = prev;
+		};
+	}, []);
+	return createPortal(
+		<div className="fixed inset-0 z-[100] flex">
 			<button
 				onClick={onClose}
 				aria-label="Close settings"
-				className="flex-1 bg-black/50 backdrop-blur-sm animate-fade-in"
+				className="flex-1 bg-black/60 backdrop-blur-sm animate-fade-in"
 			/>
-			<div className="w-full max-w-md h-full bg-surface-950/95 border-l border-white/[0.08] backdrop-blur-xl shadow-2xl overflow-y-auto animate-slide-up">
-				<div className="sticky top-0 z-10 flex items-center justify-between px-5 py-3.5 border-b border-white/[0.06] bg-surface-950/90 backdrop-blur-xl">
+			<div className="w-full max-w-md h-full bg-surface-950/98 border-l border-white/[0.08] backdrop-blur-xl shadow-2xl overflow-y-auto animate-slide-up">
+				<div className="sticky top-0 z-10 flex items-center justify-between px-5 py-3.5 border-b border-white/[0.06] bg-surface-950/95 backdrop-blur-xl">
 					<div className="flex items-center gap-2">
 						<svg
 							width="16"
@@ -1353,7 +1361,8 @@ function SettingsDrawer({ children, onClose }: { children: React.ReactNode; onCl
 				</div>
 				<div className="p-5">{children}</div>
 			</div>
-		</div>
+		</div>,
+		document.body,
 	);
 }
 
