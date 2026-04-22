@@ -99,6 +99,56 @@
     @apply disabled:opacity-40 disabled:cursor-not-allowed;
   }
 
+  .btn-trade-yes {
+    @apply rounded-lg px-4 py-2.5 text-sm font-medium text-white transition-all duration-200;
+    @apply inline-flex items-center justify-center gap-2;
+    @apply disabled:opacity-40 disabled:cursor-not-allowed;
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.12);
+  }
+  .btn-trade-yes:not(:disabled):hover {
+    background: linear-gradient(135deg, #34d399 0%, #10b981 100%);
+    box-shadow: 0 2px 10px rgba(16, 185, 129, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.18);
+    transform: translateY(-0.5px);
+  }
+  .btn-trade-yes:active {
+    transform: translateY(0);
+  }
+
+  .btn-trade-no {
+    @apply rounded-lg px-4 py-2.5 text-sm font-medium text-white transition-all duration-200;
+    @apply inline-flex items-center justify-center gap-2;
+    @apply disabled:opacity-40 disabled:cursor-not-allowed;
+    background: linear-gradient(135deg, #ef4444 0%, #b91c1c 100%);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.12);
+  }
+  .btn-trade-no:not(:disabled):hover {
+    background: linear-gradient(135deg, #f87171 0%, #ef4444 100%);
+    box-shadow: 0 2px 10px rgba(239, 68, 68, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.18);
+    transform: translateY(-0.5px);
+  }
+  .btn-trade-no:active {
+    transform: translateY(0);
+  }
+
+  .btn-outline-yes {
+    @apply rounded-lg px-3 py-2 text-xs font-medium transition-all duration-200;
+    @apply text-accent-green border border-accent-green/30 bg-accent-green/5;
+    @apply disabled:opacity-40 disabled:cursor-not-allowed;
+  }
+  .btn-outline-yes:not(:disabled):hover {
+    @apply bg-accent-green/10 border-accent-green/50;
+  }
+
+  .btn-outline-no {
+    @apply rounded-lg px-3 py-2 text-xs font-medium transition-all duration-200;
+    @apply text-accent-red border border-accent-red/30 bg-accent-red/5;
+    @apply disabled:opacity-40 disabled:cursor-not-allowed;
+  }
+  .btn-outline-no:not(:disabled):hover {
+    @apply bg-accent-red/10 border-accent-red/50;
+  }
+
   .label {
     @apply block text-sm font-medium text-text-secondary mb-1.5;
   }

@@ -201,6 +201,8 @@ function deriveContext(
 	};
 }
 
+type MarketFilter = "all" | "open" | "resolving" | "finalized" | "mine";
+
 export default function MarketsPage() {
 	const [network, setNetwork] = useState<MarketsNetworkKey>(loadStoredNetwork);
 	const [accountKind, setAccountKind] = useState<AccountKind>(loadStoredAccount);
@@ -227,6 +229,9 @@ export default function MarketsPage() {
 	const [ownerAddress, setOwnerAddress] = useState<string | null>(null);
 
 	const [settingsOpen, setSettingsOpen] = useState(false);
+	const [composerOpen, setComposerOpen] = useState(false);
+	const [logOpen, setLogOpen] = useState(false);
+	const [filter, setFilter] = useState<MarketFilter>("all");
 
 	const [hostProvider, setHostProvider] = useState<HostProviderResult | null>(null);
 	const [hostAddress, setHostAddress] = useState<string | null>(null);
@@ -570,6 +575,8 @@ export default function MarketsPage() {
 		if (marketId !== null) setBusyMarketId(marketId);
 		else setSubmitting(true);
 
+		setLogOpen(true);
+
 		try {
 			const { api, typedApi } = getApi();
 			await ensureMapped(typedApi, resolved);
@@ -614,6 +621,7 @@ export default function MarketsPage() {
 			);
 			setQuestion("");
 			setDeadline(defaultDeadline());
+			setComposerOpen(false);
 			return obs;
 		});
 	}
@@ -724,7 +732,8 @@ export default function MarketsPage() {
 		const origin = activeOrigin?.toLowerCase() ?? "";
 		const open = markets.filter((m) => m.state === 0).length;
 		const mine = origin ? markets.filter((m) => m.creator.toLowerCase() === origin).length : 0;
-		return { total: markets.length, open, mine };
+		const totalVolume = markets.reduce((acc, m) => acc + m.yesPool + m.noPool, 0n);
+		return { total: markets.length, open, mine, totalVolume };
 	}, [markets, activeOrigin]);
 
 	const isOwner = useMemo(() => {
@@ -732,219 +741,634 @@ export default function MarketsPage() {
 		return ownerAddress.toLowerCase() === activeOrigin.toLowerCase();
 	}, [ownerAddress, activeOrigin]);
 
+	const filteredMarkets = useMemo(() => {
+		const origin = activeOrigin?.toLowerCase() ?? "";
+		switch (filter) {
+			case "open":
+				return markets.filter((m) => m.state === 0);
+			case "resolving":
+				return markets.filter((m) => m.state === 1 || m.state === 2 || m.state === 3);
+			case "finalized":
+				return markets.filter((m) => m.state === 4);
+			case "mine":
+				return origin ? markets.filter((m) => m.creator.toLowerCase() === origin) : [];
+			default:
+				return markets;
+		}
+	}, [markets, filter, activeOrigin]);
+
+	const lastLogEntry = log[log.length - 1];
+	const hasError = !!hostError || (contractAddress === "" && !defaultAddress);
+
 	return (
-		<div className="space-y-6 animate-fade-in">
-			<div className="flex items-start justify-between gap-3">
-				<div className="space-y-2">
-					<h1 className="page-title text-accent-purple">Prediction Markets</h1>
-					<p className="text-text-secondary max-w-2xl">
-						Binary outcome markets on{" "}
-						<code className="rounded border border-white/[0.08] bg-white/[0.04] px-1.5 py-0.5 text-xs font-mono">
-							PredictionMarket
-						</code>
-						. Buy YES/NO shares, propose resolutions, dispute bad calls, and claim
-						winnings — all on-chain via pallet-revive.
+		<div className="space-y-6 animate-fade-in pb-24">
+			{/* Hero */}
+			<div className="flex flex-wrap items-end justify-between gap-4">
+				<div className="space-y-1.5">
+					<div className="flex items-center gap-2 text-xs uppercase tracking-[0.2em] text-text-tertiary">
+						<span className="inline-flex h-1.5 w-1.5 rounded-full bg-polka-500" />
+						Prediction markets
+					</div>
+					<h1 className="text-4xl font-bold tracking-tight font-display text-text-primary">
+						What will happen next?
+					</h1>
+					<p className="text-text-secondary max-w-2xl text-sm">
+						Trade binary outcomes on-chain. Buy YES/NO, propose resolutions, dispute
+						bad calls, claim winnings — backed by a bond.
 					</p>
 				</div>
-				<SettingsButton open={settingsOpen} onClick={() => setSettingsOpen((v) => !v)} />
+				<div className="flex items-center gap-2">
+					<button
+						onClick={() => setComposerOpen((v) => !v)}
+						disabled={!contractAddress}
+						className="btn-primary text-sm inline-flex items-center gap-2"
+					>
+						<svg
+							width="14"
+							height="14"
+							viewBox="0 0 24 24"
+							fill="none"
+							stroke="currentColor"
+							strokeWidth="2.5"
+							strokeLinecap="round"
+							strokeLinejoin="round"
+						>
+							<path d="M12 5v14M5 12h14" />
+						</svg>
+						{composerOpen ? "Close" : "New market"}
+					</button>
+					<SettingsButton
+						open={settingsOpen}
+						onClick={() => setSettingsOpen((v) => !v)}
+					/>
+				</div>
 			</div>
 
-			{settingsOpen && (
-				<SettingsPanel
-					network={network}
-					setNetwork={setNetwork}
-					accountKind={accountKind}
-					setAccountKind={setAccountKind}
-					contractKind={contractKind}
-					setContractKind={setContractKind}
-					networkDef={networkDef}
-					hostError={hostError}
-					hostReady={hostReady}
-					hostAddress={hostAddress}
-					hostAvailable={hostAvailable}
-					contractAddress={contractAddress}
-					defaultAddress={defaultAddress}
-					saveAddress={saveAddress}
-					resolutionBond={resolutionBond}
-					disputeWindow={disputeWindow}
-					ownerAddress={ownerAddress}
-					isOwner={isOwner}
-					updateResolutionBond={updateResolutionBond}
-					updateDisputeWindow={updateDisputeWindow}
-					submitting={submitting}
-					symbol={networkDef.symbol}
+			{/* Stat cards */}
+			<div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+				<StatCard
+					label="Total markets"
+					value={stats.total.toString()}
+					hint={loading ? "Loading…" : `${networkDef.label}`}
 				/>
-			)}
+				<StatCard
+					label="Open"
+					value={stats.open.toString()}
+					accent="green"
+					hint="Trading live"
+				/>
+				<StatCard
+					label="Total volume"
+					value={
+						stats.totalVolume > 0n
+							? formatAmount(stats.totalVolume, networkDef.symbol, 3)
+							: `0 ${networkDef.symbol}`
+					}
+					hint={`Across ${stats.total} market${stats.total === 1 ? "" : "s"}`}
+				/>
+				<StatCard
+					label="Your markets"
+					value={stats.mine.toString()}
+					hint={activeOrigin ? shortAddr(activeOrigin) : "—"}
+					accent="purple"
+				/>
+			</div>
 
-			{/* Summary row: who am I, what contract */}
-			<div className="card flex flex-wrap items-center gap-x-5 gap-y-2 text-xs text-text-tertiary">
-				<span>
-					Network: <span className="text-text-secondary">{networkDef.label}</span>
-				</span>
-				<span>
-					Account:{" "}
-					{activeOrigin ? (
-						<code className="font-mono text-text-secondary">
-							{shortAddr(activeOrigin)}
-						</code>
-					) : (
-						<span className="text-text-muted">—</span>
-					)}
-					{accountKind !== "host" && (
-						<span className="ml-1 text-accent-yellow/80 capitalize">
-							({accountKind} dev)
-						</span>
-					)}
-				</span>
-				<span>
-					Contract:{" "}
-					{contractAddress ? (
-						<code className="font-mono text-text-secondary">
-							{shortAddr(contractAddress)}
-						</code>
-					) : (
-						<span className="text-accent-red">not set</span>
-					)}
-					<span
-						className={`ml-1 rounded-md px-1.5 py-0.5 text-[10px] uppercase tracking-wide ${
-							contractKind === "pvm"
-								? "bg-accent-green/10 text-accent-green"
-								: "bg-accent-purple/10 text-accent-purple"
-						}`}
-					>
-						{contractKind}
-					</span>
-				</span>
-				<span>
-					Bond:{" "}
-					<span className="text-text-secondary">
-						{resolutionBond != null
+			{/* Environment strip */}
+			<div className="flex flex-wrap items-center gap-2 rounded-xl border border-white/[0.05] bg-white/[0.02] px-3 py-2 text-xs">
+				<InfoPill label="Network" value={networkDef.label} tone="blue" />
+				<InfoPill
+					label="Flavor"
+					value={contractKind.toUpperCase()}
+					tone={contractKind === "pvm" ? "green" : "purple"}
+				/>
+				<InfoPill
+					label="Account"
+					value={activeOrigin ? shortAddr(activeOrigin) : "none"}
+					mono
+				/>
+				<InfoPill
+					label="Contract"
+					value={contractAddress ? shortAddr(contractAddress) : "not set"}
+					mono
+					tone={contractAddress ? "default" : "red"}
+				/>
+				<InfoPill
+					label="Bond"
+					value={
+						resolutionBond != null
 							? formatAmount(resolutionBond, networkDef.symbol)
-							: "—"}
-					</span>
-				</span>
-				<span>
-					Dispute window:{" "}
-					<span className="text-text-secondary">
-						{disputeWindow != null ? formatDuration(disputeWindow) : "—"}
-					</span>
-				</span>
+							: "—"
+					}
+				/>
+				<InfoPill
+					label="Dispute"
+					value={disputeWindow != null ? formatDuration(disputeWindow) : "—"}
+				/>
 				{isOwner && (
-					<span className="ml-auto inline-flex items-center gap-1 rounded-md bg-accent-purple/10 px-1.5 py-0.5 text-accent-purple">
-						owner
+					<span className="ml-auto inline-flex items-center gap-1.5 rounded-md bg-accent-purple/10 border border-accent-purple/30 px-2 py-0.5 text-accent-purple text-[11px] font-semibold uppercase tracking-wide">
+						<svg
+							width="10"
+							height="10"
+							viewBox="0 0 24 24"
+							fill="currentColor"
+						>
+							<path d="M12 2l2.39 7.36H22l-6.19 4.5L18.2 21 12 16.5 5.8 21l2.39-7.14L2 9.36h7.61z" />
+						</svg>
+						Owner
 					</span>
 				)}
 			</div>
 
-			<div className="card space-y-4">
-				<div>
-					<h2 className="section-title">Create a market</h2>
-					<p className="text-xs text-text-muted mt-0.5">
-						A binary question that will be answered after its resolution time.
-					</p>
+			{hasError && !contractAddress && !defaultAddress && (
+				<div className="rounded-xl border border-accent-yellow/30 bg-accent-yellow/10 px-4 py-3 text-sm text-accent-yellow">
+					No contract address configured for {networkDef.label} ·{" "}
+					{CONTRACT_KIND_LABELS[contractKind]}. Open{" "}
+					<button
+						onClick={() => setSettingsOpen(true)}
+						className="underline font-medium"
+					>
+						settings
+					</button>{" "}
+					to set one.
 				</div>
-				<div className="space-y-3">
-					<div>
-						<label className="label">Question</label>
-						<input
-							type="text"
-							value={question}
-							onChange={(e) => setQuestion(e.target.value)}
-							placeholder="Will DOT reach $20 by July 1?"
-							className="input-field w-full"
-							maxLength={240}
-						/>
+			)}
+
+			{/* Composer */}
+			{composerOpen && (
+				<div className="card space-y-4 animate-slide-up border-polka-500/20">
+					<div className="flex items-center justify-between">
+						<div>
+							<h2 className="section-title">Create a market</h2>
+							<p className="text-xs text-text-muted mt-0.5">
+								A binary question answered after its resolution time.
+							</p>
+						</div>
+						<button
+							onClick={() => setComposerOpen(false)}
+							className="text-text-muted hover:text-text-primary transition-colors"
+							aria-label="Close composer"
+						>
+							<svg
+								width="18"
+								height="18"
+								viewBox="0 0 24 24"
+								fill="none"
+								stroke="currentColor"
+								strokeWidth="2"
+							>
+								<path d="M18 6L6 18M6 6l12 12" />
+							</svg>
+						</button>
 					</div>
-					<div>
-						<label className="label">Resolution Deadline</label>
-						<input
-							type="datetime-local"
-							value={deadline}
-							onChange={(e) => setDeadline(e.target.value)}
-							className="input-field w-full"
-						/>
-						<p className="text-xs text-text-muted mt-1.5">
-							After this time anyone can propose an outcome by posting a bond of{" "}
-							<span className="text-text-secondary">
+					<div className="grid grid-cols-1 md:grid-cols-[1fr_auto] gap-3 items-end">
+						<div>
+							<label className="label">Question</label>
+							<input
+								type="text"
+								value={question}
+								onChange={(e) => setQuestion(e.target.value)}
+								placeholder="Will DOT reach $20 by July 1?"
+								className="input-field w-full font-body text-base"
+								maxLength={240}
+							/>
+						</div>
+						<div>
+							<label className="label">Resolution deadline</label>
+							<input
+								type="datetime-local"
+								value={deadline}
+								onChange={(e) => setDeadline(e.target.value)}
+								className="input-field w-full"
+							/>
+						</div>
+					</div>
+					<div className="flex items-center justify-between gap-3 text-xs text-text-muted">
+						<span>
+							After the deadline, anyone can propose an outcome by posting a{" "}
+							<span className="text-text-secondary font-medium">
 								{resolutionBond != null
 									? formatAmount(resolutionBond, networkDef.symbol)
 									: "—"}
-							</span>
-							.
-						</p>
+							</span>{" "}
+							bond.
+						</span>
+						<button
+							onClick={createMarket}
+							disabled={submitting || !contractAddress}
+							className="btn-primary"
+						>
+							{submitting ? "Submitting…" : "Launch market"}
+						</button>
 					</div>
-					<button
-						onClick={createMarket}
-						disabled={submitting || !contractAddress}
-						className="btn-accent"
-						style={{
-							background: "linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)",
-							boxShadow:
-								"0 1px 2px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.1)",
-						}}
-					>
-						{submitting ? "Submitting…" : "Create market"}
-					</button>
 				</div>
+			)}
+
+			{/* Markets header + filters */}
+			<div className="flex flex-wrap items-center justify-between gap-3">
+				<div className="flex items-center gap-1 rounded-lg border border-white/[0.06] bg-white/[0.02] p-1">
+					{(
+						[
+							{ id: "all", label: "All", count: markets.length },
+							{ id: "open", label: "Open", count: stats.open },
+							{
+								id: "resolving",
+								label: "Resolving",
+								count: markets.filter(
+									(m) => m.state === 1 || m.state === 2 || m.state === 3,
+								).length,
+							},
+							{
+								id: "finalized",
+								label: "Finalized",
+								count: markets.filter((m) => m.state === 4).length,
+							},
+							{ id: "mine", label: "Yours", count: stats.mine },
+						] as const
+					).map(({ id, label, count }) => {
+						const active = filter === id;
+						return (
+							<button
+								key={id}
+								onClick={() => setFilter(id)}
+								className={`relative px-3 py-1.5 text-xs font-medium rounded-md transition-all whitespace-nowrap ${
+									active
+										? "bg-white/[0.08] text-text-primary"
+										: "text-text-tertiary hover:text-text-primary"
+								}`}
+							>
+								{label}
+								<span
+									className={`ml-1.5 text-[10px] ${
+										active ? "text-text-secondary" : "text-text-muted"
+									}`}
+								>
+									{count}
+								</span>
+							</button>
+						);
+					})}
+				</div>
+				<button
+					onClick={loadMarkets}
+					disabled={loading}
+					className="btn-secondary text-xs inline-flex items-center gap-1.5"
+				>
+					<svg
+						width="12"
+						height="12"
+						viewBox="0 0 24 24"
+						fill="none"
+						stroke="currentColor"
+						strokeWidth="2.2"
+						strokeLinecap="round"
+						strokeLinejoin="round"
+						className={loading ? "animate-spin" : ""}
+					>
+						<path d="M21 12a9 9 0 11-9-9c2.5 0 4.8 1 6.5 2.7L21 8" />
+						<path d="M21 3v5h-5" />
+					</svg>
+					{loading ? "Loading" : "Refresh"}
+				</button>
 			</div>
 
-			<div className="card space-y-4">
-				<div className="flex items-center justify-between gap-3">
-					<div>
-						<h2 className="section-title">Markets</h2>
-						<p className="text-xs text-text-tertiary mt-0.5">
-							{stats.total} total · {stats.open} open · {stats.mine} yours
-						</p>
-					</div>
-					<button
-						onClick={loadMarkets}
-						disabled={loading}
-						className="btn-secondary text-xs"
-					>
-						{loading ? "Loading…" : "Refresh"}
-					</button>
+			{/* Markets grid */}
+			{markets.length === 0 ? (
+				<EmptyState
+					loading={loading}
+					hasContract={!!contractAddress}
+					onOpenComposer={() => setComposerOpen(true)}
+					onOpenSettings={() => setSettingsOpen(true)}
+				/>
+			) : filteredMarkets.length === 0 ? (
+				<div className="card text-sm text-text-muted text-center py-8">
+					No markets match the{" "}
+					<span className="text-text-secondary">"{filter}"</span> filter.
 				</div>
+			) : (
+				<div className="grid gap-4 md:grid-cols-2">
+					{filteredMarkets.map((m) => (
+						<MarketCard
+							key={m.id.toString()}
+							m={m}
+							position={positions[m.id.toString()]}
+							context={deriveContext(m, disputeWindow, nowSeconds)}
+							activeOrigin={activeOrigin}
+							isOwner={isOwner}
+							resolutionBond={resolutionBond}
+							symbol={networkDef.symbol}
+							busy={busyMarketId === m.id}
+							anyBusy={busyMarketId !== null || submitting}
+							onBuy={buyShares}
+							onResolve={resolveMarket}
+							onDispute={disputeResolution}
+							onGodResolve={godResolve}
+							onClaim={claimWinnings}
+						/>
+					))}
+				</div>
+			)}
 
-				{markets.length === 0 ? (
-					<p className="text-text-muted text-sm">No markets yet. Create one above.</p>
-				) : (
-					<div className="space-y-3">
-						{markets.map((m) => (
-							<MarketCard
-								key={m.id.toString()}
-								m={m}
-								position={positions[m.id.toString()]}
-								context={deriveContext(m, disputeWindow, nowSeconds)}
-								activeOrigin={activeOrigin}
-								isOwner={isOwner}
-								resolutionBond={resolutionBond}
-								symbol={networkDef.symbol}
-								busy={busyMarketId === m.id}
-								anyBusy={busyMarketId !== null || submitting}
-								onBuy={buyShares}
-								onResolve={resolveMarket}
-								onDispute={disputeResolution}
-								onGodResolve={godResolve}
-								onClaim={claimWinnings}
+			{/* Settings drawer */}
+			{settingsOpen && (
+				<SettingsDrawer onClose={() => setSettingsOpen(false)}>
+					<SettingsPanel
+						network={network}
+						setNetwork={setNetwork}
+						accountKind={accountKind}
+						setAccountKind={setAccountKind}
+						contractKind={contractKind}
+						setContractKind={setContractKind}
+						networkDef={networkDef}
+						hostError={hostError}
+						hostReady={hostReady}
+						hostAddress={hostAddress}
+						hostAvailable={hostAvailable}
+						contractAddress={contractAddress}
+						defaultAddress={defaultAddress}
+						saveAddress={saveAddress}
+						resolutionBond={resolutionBond}
+						disputeWindow={disputeWindow}
+						ownerAddress={ownerAddress}
+						isOwner={isOwner}
+						updateResolutionBond={updateResolutionBond}
+						updateDisputeWindow={updateDisputeWindow}
+						submitting={submitting}
+						symbol={networkDef.symbol}
+					/>
+				</SettingsDrawer>
+			)}
+
+			{/* Activity log (collapsed bottom bar) */}
+			<ActivityLog
+				log={log}
+				open={logOpen}
+				setOpen={setLogOpen}
+				lastEntry={lastLogEntry}
+			/>
+		</div>
+	);
+}
+
+function StatCard({
+	label,
+	value,
+	hint,
+	accent,
+}: {
+	label: string;
+	value: string;
+	hint?: string;
+	accent?: "green" | "purple";
+}) {
+	const accentClass =
+		accent === "green"
+			? "text-accent-green"
+			: accent === "purple"
+				? "text-accent-purple"
+				: "text-text-primary";
+	return (
+		<div className="card !p-4">
+			<div className="text-[11px] uppercase tracking-wider text-text-tertiary font-medium">
+				{label}
+			</div>
+			<div className={`mt-1 text-2xl font-semibold font-display tracking-tight ${accentClass}`}>
+				{value}
+			</div>
+			{hint && (
+				<div className="mt-0.5 text-[11px] text-text-muted truncate">{hint}</div>
+			)}
+		</div>
+	);
+}
+
+function InfoPill({
+	label,
+	value,
+	mono,
+	tone = "default",
+}: {
+	label: string;
+	value: string;
+	mono?: boolean;
+	tone?: "default" | "green" | "purple" | "blue" | "red";
+}) {
+	const toneMap = {
+		default: "text-text-secondary",
+		green: "text-accent-green",
+		purple: "text-accent-purple",
+		blue: "text-accent-blue",
+		red: "text-accent-red",
+	};
+	return (
+		<span className="inline-flex items-center gap-1.5 rounded-md border border-white/[0.05] bg-white/[0.02] px-2 py-1">
+			<span className="text-[10px] uppercase tracking-wider text-text-muted">{label}</span>
+			<span className={`${toneMap[tone]} ${mono ? "font-mono" : ""} text-xs`}>{value}</span>
+		</span>
+	);
+}
+
+function EmptyState({
+	loading,
+	hasContract,
+	onOpenComposer,
+	onOpenSettings,
+}: {
+	loading: boolean;
+	hasContract: boolean;
+	onOpenComposer: () => void;
+	onOpenSettings: () => void;
+}) {
+	return (
+		<div className="card text-center py-12">
+			<div className="mx-auto w-12 h-12 rounded-xl bg-gradient-to-br from-polka-500/20 to-polka-700/10 border border-polka-500/20 flex items-center justify-center mb-3">
+				<svg
+					width="22"
+					height="22"
+					viewBox="0 0 24 24"
+					fill="none"
+					stroke="currentColor"
+					strokeWidth="1.8"
+					className="text-polka-400"
+				>
+					<path d="M3 3v18h18" />
+					<path d="M7 14l4-4 4 4 5-5" />
+				</svg>
+			</div>
+			<h3 className="text-base font-semibold text-text-primary">
+				{loading ? "Loading markets…" : "No markets yet"}
+			</h3>
+			<p className="text-sm text-text-tertiary mt-1 max-w-sm mx-auto">
+				{loading
+					? "Pulling active markets from the contract."
+					: hasContract
+						? "Be the first to launch a prediction market."
+						: "Configure a contract address to start creating and trading markets."}
+			</p>
+			{!loading && (
+				<div className="mt-4 flex items-center justify-center gap-2">
+					{hasContract ? (
+						<button onClick={onOpenComposer} className="btn-primary text-sm">
+							Create first market
+						</button>
+					) : (
+						<button onClick={onOpenSettings} className="btn-primary text-sm">
+							Open settings
+						</button>
+					)}
+				</div>
+			)}
+		</div>
+	);
+}
+
+function ActivityLog({
+	log,
+	open,
+	setOpen,
+	lastEntry,
+}: {
+	log: LogEntry[];
+	open: boolean;
+	setOpen: (v: boolean) => void;
+	lastEntry: LogEntry | undefined;
+}) {
+	return (
+		<div className="fixed bottom-4 right-4 z-30 max-w-md w-[calc(100vw-2rem)]">
+			<div className="rounded-xl border border-white/[0.08] bg-surface-800/95 backdrop-blur-xl shadow-card-hover overflow-hidden">
+				<button
+					onClick={() => setOpen(!open)}
+					className="w-full flex items-center gap-3 px-3.5 py-2.5 hover:bg-white/[0.03] transition-colors"
+				>
+					<span className="inline-flex items-center gap-2">
+						<span className="relative flex h-2 w-2">
+							{lastEntry && lastEntry.level === "err" && (
+								<span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-accent-red/70 opacity-75" />
+							)}
+							<span
+								className={`relative inline-flex rounded-full h-2 w-2 ${
+									lastEntry
+										? lastEntry.level === "err"
+											? "bg-accent-red"
+											: lastEntry.level === "finalized"
+												? "bg-accent-blue"
+												: lastEntry.level === "ok"
+													? "bg-accent-green"
+													: "bg-text-tertiary"
+										: "bg-text-muted"
+								}`}
 							/>
-						))}
+						</span>
+						<span className="text-xs font-medium text-text-secondary">Activity</span>
+					</span>
+					{lastEntry ? (
+						<span
+							className={`text-xs truncate flex-1 text-left ${levelClass(
+								lastEntry.level,
+							)}`}
+						>
+							{lastEntry.text}
+						</span>
+					) : (
+						<span className="text-xs text-text-muted flex-1 text-left">No events yet.</span>
+					)}
+					<span className="text-[10px] text-text-muted">{log.length}</span>
+					<svg
+						width="14"
+						height="14"
+						viewBox="0 0 24 24"
+						fill="none"
+						stroke="currentColor"
+						strokeWidth="2"
+						strokeLinecap="round"
+						strokeLinejoin="round"
+						className={`text-text-tertiary transition-transform ${
+							open ? "rotate-180" : ""
+						}`}
+					>
+						<polyline points="18 15 12 9 6 15" />
+					</svg>
+				</button>
+				{open && (
+					<div className="border-t border-white/[0.06] max-h-72 overflow-y-auto">
+						{log.length === 0 ? (
+							<p className="text-text-muted text-xs px-3.5 py-3">No events yet.</p>
+						) : (
+							<div className="px-3.5 py-2 space-y-1 text-xs font-mono">
+								{log
+									.slice()
+									.reverse()
+									.map((entry) => (
+										<div key={entry.id} className={levelClass(entry.level)}>
+											<span className="text-text-muted">[{entry.ts}]</span>{" "}
+											{entry.text}
+										</div>
+									))}
+							</div>
+						)}
 					</div>
 				)}
 			</div>
+		</div>
+	);
+}
 
-			<div className="card space-y-2">
-				<h2 className="section-title">Transaction log</h2>
-				{log.length === 0 ? (
-					<p className="text-text-muted text-xs">No events yet.</p>
-				) : (
-					<div className="space-y-1 text-xs font-mono max-h-64 overflow-y-auto">
-						{log.map((entry) => (
-							<div key={entry.id} className={levelClass(entry.level)}>
-								<span className="text-text-muted">[{entry.ts}]</span> {entry.text}
-							</div>
-						))}
+function SettingsDrawer({
+	children,
+	onClose,
+}: {
+	children: React.ReactNode;
+	onClose: () => void;
+}) {
+	useEffect(() => {
+		const onKey = (e: KeyboardEvent) => {
+			if (e.key === "Escape") onClose();
+		};
+		window.addEventListener("keydown", onKey);
+		return () => window.removeEventListener("keydown", onKey);
+	}, [onClose]);
+	return (
+		<div className="fixed inset-0 z-50 flex">
+			<button
+				onClick={onClose}
+				aria-label="Close settings"
+				className="flex-1 bg-black/50 backdrop-blur-sm animate-fade-in"
+			/>
+			<div className="w-full max-w-md h-full bg-surface-950/95 border-l border-white/[0.08] backdrop-blur-xl shadow-2xl overflow-y-auto animate-slide-up">
+				<div className="sticky top-0 z-10 flex items-center justify-between px-5 py-3.5 border-b border-white/[0.06] bg-surface-950/90 backdrop-blur-xl">
+					<div className="flex items-center gap-2">
+						<svg
+							width="16"
+							height="16"
+							viewBox="0 0 24 24"
+							fill="none"
+							stroke="currentColor"
+							strokeWidth="2"
+							className="text-text-secondary"
+						>
+							<circle cx="12" cy="12" r="3" />
+							<path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+						</svg>
+						<h2 className="text-sm font-semibold text-text-primary">Settings</h2>
 					</div>
-				)}
+					<button
+						onClick={onClose}
+						className="p-1.5 rounded-md text-text-tertiary hover:text-text-primary hover:bg-white/[0.05] transition-colors"
+						aria-label="Close"
+					>
+						<svg
+							width="16"
+							height="16"
+							viewBox="0 0 24 24"
+							fill="none"
+							stroke="currentColor"
+							strokeWidth="2"
+						>
+							<path d="M18 6L6 18M6 6l12 12" />
+						</svg>
+					</button>
+				</div>
+				<div className="p-5">{children}</div>
 			</div>
 		</div>
 	);
@@ -956,10 +1380,10 @@ function SettingsButton({ open, onClick }: { open: boolean; onClick: () => void 
 			onClick={onClick}
 			aria-label={open ? "Close settings" : "Open settings"}
 			title={open ? "Close settings" : "Settings & dev accounts"}
-			className={`shrink-0 mt-1 inline-flex items-center justify-center w-9 h-9 rounded-lg border transition-all ${
+			className={`shrink-0 inline-flex items-center justify-center w-10 h-10 rounded-lg border transition-all ${
 				open
 					? "border-accent-purple/40 bg-accent-purple/15 text-accent-purple"
-					: "border-white/[0.08] bg-white/[0.04] text-text-secondary hover:border-white/[0.15] hover:text-text-primary"
+					: "border-white/[0.08] bg-white/[0.03] text-text-secondary hover:border-white/[0.15] hover:text-text-primary"
 			}`}
 		>
 			<svg
@@ -1047,7 +1471,7 @@ function SettingsPanel({
 	}
 
 	return (
-		<div className="card space-y-5 border-accent-purple/20">
+		<div className="space-y-6">
 			<div>
 				<label className="label">Network</label>
 				<div className="flex flex-wrap gap-2">
@@ -1068,7 +1492,7 @@ function SettingsPanel({
 						);
 					})}
 				</div>
-				<p className="text-xs text-text-muted mt-1.5">
+				<p className="text-xs text-text-muted mt-1.5 break-all">
 					Connecting via{" "}
 					<code className="font-mono">
 						{accountKind === "host" && network === "paseoHub"
@@ -1122,7 +1546,7 @@ function SettingsPanel({
 					</p>
 				)}
 				{accountKind !== "host" && (
-					<p className="text-xs text-text-muted mt-1.5">
+					<p className="text-xs text-text-muted mt-1.5 break-all">
 						Signing as{" "}
 						<code className="font-mono">
 							{sr25519DevAccounts[DEV_ACCOUNT_INDEX[accountKind]].address}
@@ -1162,7 +1586,7 @@ function SettingsPanel({
 			</div>
 
 			<div>
-				<label className="label">Contract Address</label>
+				<label className="label">Contract address</label>
 				<div className="flex gap-2">
 					<input
 						type="text"
@@ -1207,14 +1631,14 @@ function SettingsPanel({
 				)}
 			</div>
 
-			<div>
+			<div className="pt-4 border-t border-white/[0.05]">
 				<h3 className="section-title text-sm">Admin</h3>
 				<p className="text-xs text-text-muted mt-0.5 mb-3">
 					{isOwner
 						? "You are the contract owner — you can tune parameters and finalize disputes."
 						: "Visible to the owner only. Non-owners will see these calls revert."}
 				</p>
-				<div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+				<div className="grid grid-cols-1 gap-3">
 					<div>
 						<label className="label">Resolution bond ({symbol})</label>
 						<div className="flex gap-2">
@@ -1306,44 +1730,64 @@ function MarketCard({
 
 	const stateBadgeClass =
 		m.state === 0
-			? "bg-accent-green/10 text-accent-green"
-			: m.state === 2
-				? "bg-accent-blue/10 text-accent-blue"
-				: m.state === 3
-					? "bg-accent-red/10 text-accent-red"
-					: m.state === 4
-						? "bg-accent-purple/10 text-accent-purple"
-						: "bg-white/[0.04] text-text-secondary";
+			? "bg-accent-green/10 text-accent-green border-accent-green/20"
+			: m.state === 1
+				? "bg-accent-blue/10 text-accent-blue border-accent-blue/20"
+				: m.state === 2
+					? "bg-accent-blue/10 text-accent-blue border-accent-blue/20"
+					: m.state === 3
+						? "bg-accent-red/10 text-accent-red border-accent-red/20"
+						: m.state === 4
+							? "bg-accent-purple/10 text-accent-purple border-accent-purple/20"
+							: "bg-white/[0.04] text-text-secondary border-white/[0.06]";
+
+	const stateDot =
+		m.state === 0
+			? "bg-accent-green"
+			: m.state === 3
+				? "bg-accent-red"
+				: m.state === 4
+					? "bg-accent-purple"
+					: "bg-accent-blue";
 
 	return (
-		<div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-4 space-y-3">
+		<div
+			className={`relative group rounded-xl border bg-gradient-to-br from-surface-900 to-surface-800/60 backdrop-blur-sm p-5 flex flex-col gap-4 transition-all duration-200 ${
+				busy
+					? "border-polka-500/40 shadow-glow"
+					: "border-white/[0.06] hover:border-white/[0.12] hover:shadow-card-hover"
+			}`}
+		>
+			{busy && (
+				<div className="absolute inset-0 rounded-xl bg-polka-500/5 pointer-events-none animate-pulse" />
+			)}
+
+			{/* Header */}
 			<div className="flex items-start justify-between gap-3">
-				<div className="space-y-1">
-					<p className="text-text-primary font-medium leading-snug">{m.question}</p>
-					<div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-text-tertiary">
+				<div className="space-y-1.5 flex-1 min-w-0">
+					<div className="flex items-center gap-2">
 						<span
-							className={`inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 ${stateBadgeClass}`}
+							className={`inline-flex items-center gap-1.5 rounded-md border px-1.5 py-0.5 text-[10px] uppercase tracking-wider font-semibold ${stateBadgeClass}`}
 						>
+							<span className={`w-1 h-1 rounded-full ${stateDot}`} />
 							{stateLabel}
 						</span>
-						<span>
-							Creator:{" "}
-							<span className="text-text-secondary font-mono">
-								{shortAddr(m.creator)}
+						{mine && (
+							<span className="inline-flex items-center rounded-md bg-accent-purple/10 border border-accent-purple/20 px-1.5 py-0.5 text-[10px] uppercase tracking-wider font-semibold text-accent-purple">
+								You
 							</span>
-							{mine && <span className="ml-1 text-accent-purple">(you)</span>}
-						</span>
-						<span className={!context.beforeClose ? "text-accent-yellow" : undefined}>
-							Resolves {formatRelative(m.resolutionTimestamp)} (
-							{deadlineDate.toLocaleString()})
+						)}
+						<span className="ml-auto text-[11px] font-mono text-text-muted">
+							#{m.id.toString()}
 						</span>
 					</div>
+					<h3 className="text-base font-semibold text-text-primary leading-snug">
+						{m.question}
+					</h3>
 				</div>
-				<span className="text-xs font-mono text-text-tertiary shrink-0">
-					#{m.id.toString()}
-				</span>
 			</div>
 
+			{/* Big probability display */}
 			<PoolBar
 				yesPool={m.yesPool}
 				noPool={m.noPool}
@@ -1353,165 +1797,199 @@ function MarketCard({
 				symbol={symbol}
 			/>
 
+			{/* Meta row */}
+			<div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-text-tertiary">
+				<span
+					title={deadlineDate.toLocaleString()}
+					className={!context.beforeClose ? "text-accent-yellow" : undefined}
+				>
+					<span className="text-text-muted">Resolves</span>{" "}
+					{formatRelative(m.resolutionTimestamp)}
+				</span>
+				<span>
+					<span className="text-text-muted">By</span>{" "}
+					<span className="font-mono">{shortAddr(m.creator)}</span>
+				</span>
+				{totalPool > 0n && (
+					<span>
+						<span className="text-text-muted">Vol</span>{" "}
+						{formatAmount(totalPool, symbol)}
+					</span>
+				)}
+			</div>
+
+			{/* Position pills */}
 			{(hasYes || hasNo) && (
-				<div className="flex flex-wrap gap-2 text-xs">
+				<div className="flex flex-wrap gap-1.5">
 					{hasYes && (
-						<span className="inline-flex items-center gap-1 rounded-md border border-accent-green/30 bg-accent-green/10 px-2 py-0.5 text-accent-green">
-							Your YES: {formatAmount(position!.yesDeposit, symbol)}
+						<span className="inline-flex items-center gap-1.5 rounded-md border border-accent-green/30 bg-accent-green/10 px-2 py-1 text-[11px] text-accent-green">
+							<span className="opacity-70">Your YES</span>
+							<span className="font-semibold">
+								{formatAmount(position!.yesDeposit, symbol)}
+							</span>
 						</span>
 					)}
 					{hasNo && (
-						<span className="inline-flex items-center gap-1 rounded-md border border-accent-red/30 bg-accent-red/10 px-2 py-0.5 text-accent-red">
-							Your NO: {formatAmount(position!.noDeposit, symbol)}
+						<span className="inline-flex items-center gap-1.5 rounded-md border border-accent-red/30 bg-accent-red/10 px-2 py-1 text-[11px] text-accent-red">
+							<span className="opacity-70">Your NO</span>
+							<span className="font-semibold">
+								{formatAmount(position!.noDeposit, symbol)}
+							</span>
 						</span>
 					)}
 				</div>
 			)}
 
-			{/* State-driven actions */}
-			{m.state === 0 && context.beforeClose && (
-				<div className="flex flex-wrap items-center gap-2">
-					<input
-						type="text"
-						value={amount}
-						onChange={(e) => setAmount(e.target.value)}
-						className="input-field w-28"
-						placeholder="0.01"
-						disabled={disabled}
-					/>
-					<span className="text-xs text-text-muted">{symbol}</span>
-					<button
-						className="btn-primary text-xs"
-						style={{
-							background: "linear-gradient(135deg, #34d399 0%, #059669 100%)",
-							boxShadow:
-								"0 1px 2px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.1)",
-						}}
-						disabled={disabled}
-						onClick={() => onBuy(m.id, true, amount)}
-					>
-						Buy YES
-					</button>
-					<button
-						className="btn-primary text-xs"
-						style={{
-							background: "linear-gradient(135deg, #ef4444 0%, #b91c1c 100%)",
-							boxShadow:
-								"0 1px 2px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.1)",
-						}}
-						disabled={disabled}
-						onClick={() => onBuy(m.id, false, amount)}
-					>
-						Buy NO
-					</button>
-				</div>
-			)}
-
-			{m.state === 0 && !context.beforeClose && (
-				<div className="space-y-2">
-					<p className="text-xs text-text-muted">
-						Trading closed. Propose the outcome by posting a bond of{" "}
-						<span className="text-text-secondary">
-							{resolutionBond != null ? formatAmount(resolutionBond, symbol) : "—"}
-						</span>
-						.
-					</p>
-					<div className="flex flex-wrap gap-2">
-						<button
-							className="btn-secondary text-xs border-accent-green/40 text-accent-green"
-							disabled={disabled || resolutionBond == null}
-							onClick={() => onResolve(m.id, true)}
-						>
-							Resolve YES
-						</button>
-						<button
-							className="btn-secondary text-xs border-accent-red/40 text-accent-red"
-							disabled={disabled || resolutionBond == null}
-							onClick={() => onResolve(m.id, false)}
-						>
-							Resolve NO
-						</button>
-					</div>
-				</div>
-			)}
-
-			{m.state === 2 && (
-				<div className="space-y-2">
-					<p className="text-xs text-text-muted">
-						Proposed outcome:{" "}
-						<span
-							className={m.proposedOutcome ? "text-accent-green" : "text-accent-red"}
-						>
-							{m.proposedOutcome ? "YES" : "NO"}
-						</span>
-						{". "}
-						{context.withinDispute
-							? "Dispute window open — stake a bond to dispute, or wait to finalize."
-							: "Dispute window closed — anyone can finalize now."}
-					</p>
-					<div className="flex flex-wrap gap-2">
-						{context.withinDispute && (
+			{/* Action zone */}
+			<div className="pt-1 border-t border-white/[0.04]">
+				{m.state === 0 && context.beforeClose && (
+					<div className="pt-3 space-y-2">
+						<div className="flex items-center gap-2">
+							<div className="relative flex-1">
+								<input
+									type="text"
+									value={amount}
+									onChange={(e) => setAmount(e.target.value)}
+									className="input-field w-full pr-14"
+									placeholder="0.01"
+									disabled={disabled}
+								/>
+								<span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-text-muted pointer-events-none">
+									{symbol}
+								</span>
+							</div>
+						</div>
+						<div className="grid grid-cols-2 gap-2">
 							<button
-								className="btn-secondary text-xs border-accent-yellow/40 text-accent-yellow"
-								disabled={disabled || resolutionBond == null}
-								onClick={() => onDispute(m.id)}
-							>
-								Dispute
-							</button>
-						)}
-						{!context.withinDispute && (
-							<button
-								className="btn-primary text-xs"
+								className="btn-trade-yes"
 								disabled={disabled}
-								onClick={() => onClaim(m.id)}
+								onClick={() => onBuy(m.id, true, amount)}
 							>
-								Finalize &amp; claim
-							</button>
-						)}
-					</div>
-				</div>
-			)}
-
-			{m.state === 3 && (
-				<div className="space-y-2">
-					<p className="text-xs text-text-muted">
-						Disputed. Waiting for contract owner to finalize.
-					</p>
-					{isOwner && (
-						<div className="flex flex-wrap gap-2">
-							<button
-								className="btn-secondary text-xs border-accent-green/40 text-accent-green"
-								disabled={disabled}
-								onClick={() => onGodResolve(m.id, true)}
-							>
-								God resolve YES
+								<span className="font-semibold">Buy YES</span>
+								<span className="opacity-80 text-[11px]">{yesPct}¢</span>
 							</button>
 							<button
-								className="btn-secondary text-xs border-accent-red/40 text-accent-red"
+								className="btn-trade-no"
 								disabled={disabled}
-								onClick={() => onGodResolve(m.id, false)}
+								onClick={() => onBuy(m.id, false, amount)}
 							>
-								God resolve NO
+								<span className="font-semibold">Buy NO</span>
+								<span className="opacity-80 text-[11px]">{noPct}¢</span>
 							</button>
 						</div>
-					)}
-				</div>
-			)}
+					</div>
+				)}
 
-			{m.state === 4 && (
-				<div className="flex flex-wrap items-center gap-2">
-					<p className="text-xs text-text-muted">
-						Market finalized. Claim any winning position.
-					</p>
-					<button
-						className="btn-primary text-xs ml-auto"
-						disabled={disabled}
-						onClick={() => onClaim(m.id)}
-					>
-						Claim winnings
-					</button>
-				</div>
-			)}
+				{m.state === 0 && !context.beforeClose && (
+					<div className="pt-3 space-y-2">
+						<p className="text-xs text-text-muted">
+							Trading closed. Propose the outcome by posting a bond of{" "}
+							<span className="text-text-secondary font-medium">
+								{resolutionBond != null
+									? formatAmount(resolutionBond, symbol)
+									: "—"}
+							</span>
+							.
+						</p>
+						<div className="grid grid-cols-2 gap-2">
+							<button
+								className="btn-outline-yes"
+								disabled={disabled || resolutionBond == null}
+								onClick={() => onResolve(m.id, true)}
+							>
+								Resolve YES
+							</button>
+							<button
+								className="btn-outline-no"
+								disabled={disabled || resolutionBond == null}
+								onClick={() => onResolve(m.id, false)}
+							>
+								Resolve NO
+							</button>
+						</div>
+					</div>
+				)}
+
+				{m.state === 2 && (
+					<div className="pt-3 space-y-2">
+						<p className="text-xs text-text-muted">
+							Proposed outcome:{" "}
+							<span
+								className={
+									m.proposedOutcome ? "text-accent-green" : "text-accent-red"
+								}
+							>
+								{m.proposedOutcome ? "YES" : "NO"}
+							</span>
+							{". "}
+							{context.withinDispute
+								? "Dispute window open — stake a bond to dispute, or wait to finalize."
+								: "Dispute window closed — anyone can finalize now."}
+						</p>
+						<div className="flex flex-wrap gap-2">
+							{context.withinDispute && (
+								<button
+									className="btn-secondary text-xs border-accent-yellow/40 text-accent-yellow"
+									disabled={disabled || resolutionBond == null}
+									onClick={() => onDispute(m.id)}
+								>
+									Dispute
+								</button>
+							)}
+							{!context.withinDispute && (
+								<button
+									className="btn-primary text-xs"
+									disabled={disabled}
+									onClick={() => onClaim(m.id)}
+								>
+									Finalize &amp; claim
+								</button>
+							)}
+						</div>
+					</div>
+				)}
+
+				{m.state === 3 && (
+					<div className="pt-3 space-y-2">
+						<p className="text-xs text-text-muted">
+							Disputed. Waiting for contract owner to finalize.
+						</p>
+						{isOwner && (
+							<div className="grid grid-cols-2 gap-2">
+								<button
+									className="btn-outline-yes"
+									disabled={disabled}
+									onClick={() => onGodResolve(m.id, true)}
+								>
+									God resolve YES
+								</button>
+								<button
+									className="btn-outline-no"
+									disabled={disabled}
+									onClick={() => onGodResolve(m.id, false)}
+								>
+									God resolve NO
+								</button>
+							</div>
+						)}
+					</div>
+				)}
+
+				{m.state === 4 && (
+					<div className="pt-3 flex flex-wrap items-center gap-2">
+						<p className="text-xs text-text-muted flex-1">
+							Market finalized. Claim any winning position.
+						</p>
+						<button
+							className="btn-primary text-xs"
+							disabled={disabled}
+							onClick={() => onClaim(m.id)}
+						>
+							Claim winnings
+						</button>
+					</div>
+				)}
+			</div>
 		</div>
 	);
 }
@@ -1532,25 +2010,38 @@ function PoolBar({
 	symbol: string;
 }) {
 	return (
-		<div className="space-y-1.5">
-			<div className="flex justify-between text-xs font-mono text-text-tertiary">
-				<span className="text-accent-green">
-					YES {yesPct}% · {formatAmount(yesPool, symbol)}
-				</span>
-				<span className="text-text-muted">Pool: {formatAmount(totalPool, symbol)}</span>
-				<span className="text-accent-red">
-					{formatAmount(noPool, symbol)} · NO {noPct}%
-				</span>
+		<div className="space-y-2">
+			<div className="flex items-end justify-between gap-4">
+				<div className="flex items-baseline gap-1.5">
+					<span className="text-[11px] uppercase tracking-wider text-accent-green font-semibold">
+						YES
+					</span>
+					<span className="text-2xl font-bold text-accent-green font-display tabular-nums">
+						{yesPct}%
+					</span>
+				</div>
+				<div className="flex items-baseline gap-1.5">
+					<span className="text-2xl font-bold text-accent-red font-display tabular-nums">
+						{noPct}%
+					</span>
+					<span className="text-[11px] uppercase tracking-wider text-accent-red font-semibold">
+						NO
+					</span>
+				</div>
 			</div>
 			<div className="flex h-2 w-full overflow-hidden rounded-full bg-white/[0.04]">
 				<div
-					className="h-full bg-accent-green/70"
+					className="h-full bg-gradient-to-r from-accent-green/80 to-accent-green/60 transition-all"
 					style={{ width: totalPool === 0n ? "50%" : `${yesPct}%` }}
 				/>
 				<div
-					className="h-full bg-accent-red/70"
+					className="h-full bg-gradient-to-r from-accent-red/60 to-accent-red/80 transition-all"
 					style={{ width: totalPool === 0n ? "50%" : `${noPct}%` }}
 				/>
+			</div>
+			<div className="flex items-center justify-between text-[10px] font-mono text-text-muted">
+				<span>{formatAmount(yesPool, symbol)}</span>
+				<span>{formatAmount(noPool, symbol)}</span>
 			</div>
 		</div>
 	);
