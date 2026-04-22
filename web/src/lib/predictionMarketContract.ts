@@ -41,9 +41,11 @@ export function createPredictionMarketContract(
 	let ratioPromise: Promise<bigint> | null = null;
 	function getNativeToEthRatio(): Promise<bigint> {
 		if (!ratioPromise) {
-			const constants = (typedApi as unknown as {
-				constants: { Revive: { NativeToEthRatio: () => Promise<number | bigint> } };
-			}).constants;
+			const constants = (
+				typedApi as unknown as {
+					constants: { Revive: { NativeToEthRatio: () => Promise<number | bigint> } };
+				}
+			).constants;
 			ratioPromise = constants.Revive.NativeToEthRatio().then((r) => BigInt(r));
 		}
 		return ratioPromise;
@@ -159,12 +161,7 @@ export function createPredictionMarketContract(
 			signer: PolkadotSigner,
 		) {
 			const nativeValue = await weiToNative(valueWei);
-			const dry = await dryRunWrite(
-				"buyShares",
-				{ marketId, outcome },
-				origin,
-				nativeValue,
-			);
+			const dry = await dryRunWrite("buyShares", { marketId, outcome }, origin, nativeValue);
 			return dry.send().signSubmitAndWatch(signer);
 		},
 
@@ -192,12 +189,7 @@ export function createPredictionMarketContract(
 			signer: PolkadotSigner,
 		) {
 			const nativeValue = await weiToNative(bondWei);
-			const dry = await dryRunWrite(
-				"disputeResolution",
-				{ marketId },
-				origin,
-				nativeValue,
-			);
+			const dry = await dryRunWrite("disputeResolution", { marketId }, origin, nativeValue);
 			return dry.send().signSubmitAndWatch(signer);
 		},
 

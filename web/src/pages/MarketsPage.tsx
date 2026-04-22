@@ -68,11 +68,13 @@ const CONTRACT_KIND_LABELS: Record<ContractKind, string> = {
 	pvm: "PVM (resolc)",
 };
 
-const CONTRACT_KIND_DEPLOY_KEY: Record<ContractKind, "evmPredictionMarket" | "pvmPredictionMarket"> =
-	{
-		evm: "evmPredictionMarket",
-		pvm: "pvmPredictionMarket",
-	};
+const CONTRACT_KIND_DEPLOY_KEY: Record<
+	ContractKind,
+	"evmPredictionMarket" | "pvmPredictionMarket"
+> = {
+	evm: "evmPredictionMarket",
+	pvm: "pvmPredictionMarket",
+};
 
 function toLocalDateTimeInput(date: Date): string {
 	const pad = (n: number) => n.toString().padStart(2, "0");
@@ -773,8 +775,8 @@ export default function MarketsPage() {
 						What will happen next?
 					</h1>
 					<p className="text-text-secondary max-w-2xl text-sm">
-						Trade binary outcomes on-chain. Buy YES/NO, propose resolutions, dispute
-						bad calls, claim winnings — backed by a bond.
+						Trade binary outcomes on-chain. Buy YES/NO, propose resolutions, dispute bad
+						calls, claim winnings — backed by a bond.
 					</p>
 				</div>
 				<div className="flex items-center gap-2">
@@ -867,12 +869,7 @@ export default function MarketsPage() {
 				/>
 				{isOwner && (
 					<span className="ml-auto inline-flex items-center gap-1.5 rounded-md bg-accent-purple/10 border border-accent-purple/30 px-2 py-0.5 text-accent-purple text-[11px] font-semibold uppercase tracking-wide">
-						<svg
-							width="10"
-							height="10"
-							viewBox="0 0 24 24"
-							fill="currentColor"
-						>
+						<svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor">
 							<path d="M12 2l2.39 7.36H22l-6.19 4.5L18.2 21 12 16.5 5.8 21l2.39-7.14L2 9.36h7.61z" />
 						</svg>
 						Owner
@@ -884,10 +881,7 @@ export default function MarketsPage() {
 				<div className="rounded-xl border border-accent-yellow/30 bg-accent-yellow/10 px-4 py-3 text-sm text-accent-yellow">
 					No contract address configured for {networkDef.label} ·{" "}
 					{CONTRACT_KIND_LABELS[contractKind]}. Open{" "}
-					<button
-						onClick={() => setSettingsOpen(true)}
-						className="underline font-medium"
-					>
+					<button onClick={() => setSettingsOpen(true)} className="underline font-medium">
 						settings
 					</button>{" "}
 					to set one.
@@ -1042,8 +1036,8 @@ export default function MarketsPage() {
 				/>
 			) : filteredMarkets.length === 0 ? (
 				<div className="card text-sm text-text-muted text-center py-8">
-					No markets match the{" "}
-					<span className="text-text-secondary">"{filter}"</span> filter.
+					No markets match the <span className="text-text-secondary">"{filter}"</span>{" "}
+					filter.
 				</div>
 			) : (
 				<div className="grid gap-4 md:grid-cols-2">
@@ -1100,12 +1094,7 @@ export default function MarketsPage() {
 			)}
 
 			{/* Activity log (collapsed bottom bar) */}
-			<ActivityLog
-				log={log}
-				open={logOpen}
-				setOpen={setLogOpen}
-				lastEntry={lastLogEntry}
-			/>
+			<ActivityLog log={log} open={logOpen} setOpen={setLogOpen} lastEntry={lastLogEntry} />
 		</div>
 	);
 }
@@ -1132,12 +1121,12 @@ function StatCard({
 			<div className="text-[11px] uppercase tracking-wider text-text-tertiary font-medium">
 				{label}
 			</div>
-			<div className={`mt-1 text-2xl font-semibold font-display tracking-tight ${accentClass}`}>
+			<div
+				className={`mt-1 text-2xl font-semibold font-display tracking-tight ${accentClass}`}
+			>
 				{value}
 			</div>
-			{hint && (
-				<div className="mt-0.5 text-[11px] text-text-muted truncate">{hint}</div>
-			)}
+			{hint && <div className="mt-0.5 text-[11px] text-text-muted truncate">{hint}</div>}
 		</div>
 	);
 }
@@ -1270,7 +1259,9 @@ function ActivityLog({
 							{lastEntry.text}
 						</span>
 					) : (
-						<span className="text-xs text-text-muted flex-1 text-left">No events yet.</span>
+						<span className="text-xs text-text-muted flex-1 text-left">
+							No events yet.
+						</span>
 					)}
 					<span className="text-[10px] text-text-muted">{log.length}</span>
 					<svg
@@ -1313,13 +1304,7 @@ function ActivityLog({
 	);
 }
 
-function SettingsDrawer({
-	children,
-	onClose,
-}: {
-	children: React.ReactNode;
-	onClose: () => void;
-}) {
+function SettingsDrawer({ children, onClose }: { children: React.ReactNode; onClose: () => void }) {
 	useEffect(() => {
 		const onKey = (e: KeyboardEvent) => {
 			if (e.key === "Escape") onClose();
@@ -1580,8 +1565,8 @@ function SettingsPanel({
 					})}
 				</div>
 				<p className="text-xs text-text-muted mt-1.5">
-					Same Solidity source, different bytecode. Calls go through pallet-revive
-					either way.
+					Same Solidity source, different bytecode. Calls go through pallet-revive either
+					way.
 				</p>
 			</div>
 
