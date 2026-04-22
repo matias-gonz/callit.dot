@@ -1,10 +1,13 @@
 import { Outlet, Link, useLocation } from "react-router-dom";
 import { useChainStore } from "./store/chainStore";
+import { useUiStore } from "./store/uiStore";
 import { useConnectionManagement } from "./hooks/useConnection";
 
 export default function App() {
 	const location = useLocation();
 	const connected = useChainStore((s) => s.connected);
+	const settingsOpen = useUiStore((s) => s.settingsOpen);
+	const toggleSettings = useUiStore((s) => s.toggleSettings);
 
 	useConnectionManagement();
 
@@ -75,7 +78,7 @@ export default function App() {
 						)}
 					</div>
 
-					<div className="ml-auto flex items-center gap-3 shrink-0">
+					<div className="ml-auto flex items-center gap-2 shrink-0">
 						<div className="flex items-center gap-2 rounded-full border border-white/[0.06] bg-white/[0.03] pl-2.5 pr-3 py-1">
 							<span
 								className={`w-1.5 h-1.5 rounded-full transition-colors duration-500 ${
@@ -88,6 +91,30 @@ export default function App() {
 								{connected ? "Live" : "Offline"}
 							</span>
 						</div>
+						<button
+							onClick={toggleSettings}
+							aria-label={settingsOpen ? "Close settings" : "Open settings"}
+							title={settingsOpen ? "Close settings" : "Settings"}
+							className={`inline-flex items-center justify-center w-9 h-9 rounded-lg border transition-all ${
+								settingsOpen
+									? "border-accent-purple/40 bg-accent-purple/15 text-accent-purple"
+									: "border-white/[0.08] bg-white/[0.03] text-text-secondary hover:border-white/[0.15] hover:text-text-primary"
+							}`}
+						>
+							<svg
+								width="16"
+								height="16"
+								viewBox="0 0 24 24"
+								fill="none"
+								stroke="currentColor"
+								strokeWidth="2"
+								strokeLinecap="round"
+								strokeLinejoin="round"
+							>
+								<circle cx="12" cy="12" r="3" />
+								<path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+							</svg>
+						</button>
 					</div>
 				</div>
 			</nav>
