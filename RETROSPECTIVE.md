@@ -68,7 +68,5 @@ One thing I would appreciate is a way for PAPI to work locally, because the only
 
 ## Links
 
-- **Pitch slides / presentation:**
-- **Demo video (if any):**
-- **Live deployment (if any):**
-- **Anything else worth sharing:**
+- **Pitch slides / presentation:** https://matias-gonz.github.io/callit.dot/slides/
+- **Live deployment (if any):** https://callit00.paseo.li
