@@ -20,23 +20,21 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-node@v4
+      - uses: oven-sh/setup-bun@v2
         with:
-          node-version: 22
-          cache: npm
-          cache-dependency-path: web/package-lock.json
+          bun-version: latest
 
       - name: Install and build
-        working-directory: web
+        working-directory: slides
         run: |
-          npm ci
-          npm run build
+          bun install
+          bun run build
 
       - uses: actions/configure-pages@v5
 
       - uses: actions/upload-pages-artifact@v3
         with:
-          path: web/dist
+          path: slides/dist
 
   deploy:
     needs: build
