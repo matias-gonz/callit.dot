@@ -23,14 +23,6 @@
 					<h3 class="subtitle">Decentralized Prediction Markets on Polkadot</h3>
 					<p class="tagline"><em>create, predict, resolve</em> and <em>claim</em></p>
 					<p class="chip"><span class="live-dot"></span>Live on callit00.dot</p>
-
-					<aside class="notes">
-						Callit is a decentralized binary prediction market. Anyone can create a
-						question, bet YES or NO with native tokens, and anyone can resolve the
-						outcome. No company, no custodian, no off-chain orderbook. A single smart
-						contract handles the full lifecycle. It's live on Paseo Hub TestNet right
-						now.
-					</aside>
 				</section>
 
 				<!-- Slide 2 — Problem -->
@@ -58,14 +50,6 @@
 							</ul>
 						</div>
 					</div>
-
-					<aside class="notes">
-						Polymarket is the biggest prediction market and it's fundamentally
-						centralized. They decide what questions get listed, they run resolution,
-						they hold your funds. If they get a subpoena or decide your market is
-						inconvenient, it disappears. Callit makes every one of those operator roles
-						into a smart contract function. There is no compliance team.
-					</aside>
 				</section>
 
 				<!-- Slide 3 — Architecture -->
@@ -199,20 +183,6 @@
 						/>
 						<text x="600" y="311" class="t-badge">same PredictionMarket.sol</text>
 					</svg>
-
-					<aside class="notes">
-						Three ways to drive Callit. The web app connects to PWallet — the Polkadot
-						app — through the Triangle Host API from Nova Sama. PWallet holds the
-						accounts and signs. The CLI uses alloy and a plain Ethereum RPC connection
-						with its own signers. And the MCP server exposes every contract function as
-						a typed tool over stdio, so an LLM like Claude can create markets, buy
-						shares, resolve, and claim — all through natural language, with no manual
-						transaction signing. All three converge on the same deployed addresses. The
-						same Solidity source is compiled twice — once with solc for standard EVM,
-						once with resolc from Parity for PolkaVM, which runs RISC-V. Both are
-						deployed. On top sits an eth-rpc proxy that translates standard Ethereum
-						JSON-RPC into Substrate extrinsics — so viem, alloy, MetaMask all just work.
-					</aside>
 				</section>
 
 				<!-- Slide 4a — Market Lifecycle -->
@@ -317,13 +287,6 @@
 							<text x="345" y="123">Finalized</text>
 						</g>
 					</svg>
-
-					<aside class="notes">
-						A market goes through Open → Resolving → Proposed. From Proposed, two paths:
-						if no one disputes within 24 hours it finalizes and the resolver gets their
-						bond back. If disputed, both bonds are locked and the god oracle makes the
-						final call.
-					</aside>
 				</section>
 
 				<!-- Slide 4b — Game Theory -->
@@ -337,14 +300,6 @@
 						<li><strong>Frivolous dispute</strong> → lose bond to the resolver</li>
 						<li><strong>Honest behavior</strong> is the only rational strategy</li>
 					</ul>
-
-					<aside class="notes">
-						The answer is skin in the game. Anyone can resolve by posting a bond. If
-						disputed, both sides have money on the line — loser's bond goes to the
-						winner. Resolvers are honest because a wrong resolution costs them their
-						bond. Disputers are honest because a frivolous challenge costs them their
-						bond. No protocol fee needed — the economics are self-funding.
-					</aside>
 				</section>
 
 				<!-- Slide 5 — pallet-revive gotchas -->
@@ -355,7 +310,9 @@
 						<div class="col col-gotcha">
 							<h3>Map the account first</h3>
 							<p class="col-sub">32-byte keys don't map to H160 automatically</p>
-							<pre class="gotcha-code"><code>if (!(await api.isAddressMapped(origin))) {
+							<pre
+								class="gotcha-code"
+							><code>if (!(await api.isAddressMapped(origin))) {
   await watchTx(mapAccount(typedApi, signer));
 }</code></pre>
 						</div>
@@ -367,21 +324,11 @@
     .constants.Revive.NativeToEthRatio());</code></pre>
 						</div>
 					</div>
-
-					<aside class="notes">
-						Two gotchas when calling pallet-revive contracts from a Substrate frontend.
-						First: every Substrate account must call map_account once — 32-byte keys
-						don't map to 20-byte H160 addresses automatically. Second: the SDK value
-						field is in native plancks, not wei. Passing parseEther directly asks
-						pallet-revive to move millions of PAS. Keep everything in wei internally
-						and divide by NativeToEthRatio right before calling the SDK.
-					</aside>
 				</section>
 
 				<!-- Slide 6 — Demo -->
 				<section class="title-slide" data-background-color="#0b0b12">
 					<h1 class="title demo-title">Demo</h1>
-					<aside class="notes">Live demo.</aside>
 				</section>
 
 				<!-- Slide 7 — Future -->
@@ -402,18 +349,9 @@
 						<div class="card">
 							<div class="card-num">03</div>
 							<h3>Bulletin Chain</h3>
-							<p>Rich metadata off contract · content hash on-chain</p>
+							<p>Market data off contract · content hash on-chain</p>
 						</div>
 					</div>
-
-					<aside class="notes">
-						Three improvements worth building. First: ERC-1155 shares so positions are
-						actual tokens you can sell before resolution — secondary markets, DeFi
-						composability. Second: replace the god oracle with a decentralized,
-						community-driven resolution mechanism — no single point of trust. Third: use
-						Polkadot's Bulletin Chain to store rich market metadata off-contract and
-						keep only a content hash on-chain.
-					</aside>
 				</section>
 
 				<!-- Closing -->
@@ -423,7 +361,6 @@
 						Callit.dot: <em>create, predict, resolve</em> and <em>claim</em>
 					</p>
 					<p class="chip"><span class="live-dot"></span>Live on callit00.dot</p>
-					<aside class="notes">Questions?</aside>
 				</section>
 			</div>
 		</div>
