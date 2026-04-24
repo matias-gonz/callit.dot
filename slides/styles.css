@@ -1,0 +1,662 @@
+:root {
+  --pink: #e6007a;
+  --pink-soft: #ff4ba8;
+  --bg: #0b0b12;
+  --bg-2: #14142a;
+  --ink: #f4f4f8;
+  --ink-dim: #b7b7c7;
+  --line: rgba(255, 255, 255, 0.08);
+  --good: #7cf5b0;
+  --bad: #ff6b6b;
+  --mono: "JetBrains Mono", "Fira Code", ui-monospace, SFMono-Regular, Menlo, monospace;
+  --sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+.reveal {
+  font-family: var(--sans);
+  color: var(--ink);
+  font-weight: 400;
+  letter-spacing: 0.005em;
+}
+
+.reveal .slides {
+  text-align: left;
+}
+
+.reveal .slides section {
+  padding: 1.4em 2vw 2.4em 2vw !important;
+  box-sizing: border-box !important;
+}
+
+.reveal h1,
+.reveal h2,
+.reveal h3,
+.reveal h4 {
+  color: var(--ink);
+  font-family: var(--sans);
+  text-transform: none !important;
+  letter-spacing: -0.015em;
+  text-shadow: none;
+  font-weight: 700;
+  margin: 0 0 0.5em 0;
+}
+
+.reveal strong {
+  color: var(--ink);
+  font-weight: 700;
+}
+
+.reveal em {
+  color: var(--pink-soft);
+  font-style: normal;
+  font-weight: 500;
+}
+
+.reveal code {
+  font-family: var(--mono);
+  color: var(--pink-soft);
+  background: rgba(230, 0, 122, 0.08);
+  padding: 0.05em 0.35em;
+  border-radius: 4px;
+  font-size: 0.85em;
+}
+
+.reveal a {
+  color: var(--pink-soft);
+}
+
+.reveal ul {
+  list-style: none !important;
+  margin: 0;
+  padding: 0;
+}
+
+.reveal ul li {
+  padding: 0.25em 0 0.25em 1.2em;
+  position: relative;
+  line-height: 1.5;
+}
+
+.reveal ul li::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0.75em;
+  width: 0.5em;
+  height: 2px;
+  background: var(--pink);
+  border-radius: 2px;
+}
+
+.reveal .progress {
+  color: var(--pink);
+}
+
+.reveal .controls {
+  color: var(--pink);
+}
+
+.reveal .slide-number {
+  background: transparent;
+  color: var(--ink-dim);
+  font-family: var(--mono);
+  font-size: 0.7em;
+}
+
+/* Section titles */
+.reveal .section-title {
+  font-size: 2em;
+  margin: 0 0 0.6em 0;
+  border-bottom: 2px solid var(--pink);
+  padding-bottom: 0.2em;
+  display: inline-block;
+}
+
+.reveal .accent {
+  color: var(--pink);
+}
+
+/* Title slide */
+.reveal .title-slide {
+  text-align: center !important;
+}
+
+.reveal .title-slide .brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5em;
+  font-family: var(--mono);
+  color: var(--ink-dim);
+  font-size: 0.8em;
+  margin-bottom: 0.6em;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+}
+
+.reveal .title-slide .dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--pink);
+  box-shadow: 0 0 14px var(--pink);
+}
+
+.reveal .title-slide .title {
+  font-size: 3.8em;
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  margin: 0 0 0.1em 0;
+  background: linear-gradient(135deg, #fff 0%, var(--pink-soft) 50%, var(--pink) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.reveal .title-slide .title-sm {
+  font-size: 2.8em;
+}
+
+.reveal .title-slide .demo-title {
+  font-size: 6em;
+  letter-spacing: -0.05em;
+}
+
+.reveal .title-slide .subtitle {
+  font-size: 1.2em;
+  color: var(--ink);
+  font-weight: 400;
+  margin: 0 0 0.4em 0;
+}
+
+.reveal .title-slide .tagline {
+  font-size: 0.9em;
+  color: var(--ink-dim);
+  margin: 0 auto 0.8em auto;
+  max-width: 36em;
+  line-height: 1.5;
+}
+
+.reveal .title-slide .tagline em {
+  color: var(--pink-soft);
+  font-style: normal;
+}
+
+@keyframes live-breathe {
+  0%, 100% { opacity: 1; box-shadow: 0 0 6px 2px rgba(255, 60, 60, 0.7); }
+  50% { opacity: 0.4; box-shadow: 0 0 3px 1px rgba(255, 60, 60, 0.2); }
+}
+
+.reveal .live-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #ff3c3c;
+  margin-right: 0.55em;
+  vertical-align: middle;
+  position: relative;
+  top: -1px;
+  animation: live-breathe 2s ease-in-out infinite;
+}
+
+.reveal .chip {
+  display: inline-block;
+  font-family: var(--mono);
+  font-size: 0.75em;
+  color: var(--pink-soft);
+  background: rgba(230, 0, 122, 0.1);
+  border: 1px solid rgba(230, 0, 122, 0.3);
+  padding: 0.4em 0.9em;
+  border-radius: 999px;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.4em;
+}
+
+/* Two-column layout */
+.two-col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.2em;
+  margin-top: 0.3em;
+  margin-bottom: 1.2em;
+}
+
+.two-col-tight {
+  gap: 0.8em;
+}
+
+.two-col .col {
+  background: var(--bg-2);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 1em 1.2em;
+  font-size: 0.75em;
+  line-height: 1.5;
+}
+
+.two-col .col h3 {
+  font-size: 1.25em;
+  margin: 0 0 0.2em 0;
+}
+
+.two-col .col .col-sub {
+  font-family: var(--mono);
+  color: var(--ink-dim);
+  font-size: 0.8em;
+  margin: 0 0 0.8em 0;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+.two-col .col-bad {
+  border-left: 3px solid var(--bad);
+}
+.two-col .col-bad h3 {
+  color: var(--bad);
+}
+
+.two-col .col-good {
+  border-left: 3px solid var(--good);
+}
+.two-col .col-good h3 {
+  color: var(--good);
+}
+
+.two-col .col ul li::before {
+  background: currentColor;
+  opacity: 0.5;
+}
+
+.two-col .col-bad .col-verdict {
+  margin-top: 0.6em;
+  padding-top: 0.6em;
+  border-top: 1px solid rgba(255, 107, 107, 0.2);
+  color: var(--bad);
+  font-size: 1.05em;
+}
+
+.two-col .col-bad .col-verdict::before {
+  display: none;
+}
+
+.two-col .col-good .col-verdict {
+  margin-top: 0.6em;
+  padding-top: 0.6em;
+  border-top: 1px solid rgba(124, 245, 176, 0.2);
+  color: var(--good);
+  font-size: 1.05em;
+}
+
+.two-col .col-good .col-verdict::before {
+  display: none;
+}
+
+/* Gotcha columns */
+.two-col .col-gotcha {
+  border-left: 3px solid var(--pink);
+}
+
+.two-col .col-gotcha h3 {
+  color: var(--pink-soft);
+  font-size: 1.1em;
+  margin: 0 0 0.2em 0;
+}
+
+.two-col .col-gotcha p {
+  color: var(--ink-dim);
+  margin: 0 0 0.6em 0;
+  line-height: 1.5;
+}
+
+.reveal .gotcha-code {
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 0.6em 0.8em;
+  margin: 0;
+  box-shadow: none;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.reveal .gotcha-code code {
+  font-family: var(--mono);
+  font-size: 0.72em;
+  color: var(--ink-dim);
+  background: none;
+  padding: 0;
+  border-radius: 0;
+  white-space: pre;
+  display: block;
+}
+
+/* Three-column cards */
+.three-col {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1em;
+  margin: 0.5em 0 1em 0;
+}
+
+.three-col .card {
+  background: var(--bg-2);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 1.2em 1.1em;
+  position: relative;
+  font-size: 0.65em;
+  line-height: 1.55;
+}
+
+.three-col .card .card-num {
+  font-family: var(--mono);
+  font-size: 0.8em;
+  color: var(--pink);
+  letter-spacing: 0.15em;
+  margin-bottom: 0.4em;
+}
+
+.three-col .card h3 {
+  font-size: 1.4em;
+  margin: 0 0 0.2em 0;
+}
+
+.three-col .card p {
+  color: var(--ink-dim);
+  margin: 0;
+}
+
+.three-col .card strong {
+  color: var(--ink);
+}
+
+/* Architecture SVG diagram (slide 3) */
+.reveal .arch-diagram {
+  display: block;
+  width: 100%;
+  max-width: 1160px;
+  height: auto;
+  margin: 0.3em auto 0.4em auto;
+  font-family: var(--sans);
+}
+
+.reveal .arch-diagram .box rect {
+  fill: var(--bg-2);
+  stroke: rgba(255, 255, 255, 0.1);
+  stroke-width: 1.5;
+}
+
+.reveal .arch-diagram .surface rect {
+  stroke: var(--pink);
+  stroke-width: 2;
+}
+
+.reveal .arch-diagram .surface.web rect {
+  fill: rgba(230, 0, 122, 0.06);
+}
+
+.reveal .arch-diagram .wallet {
+  fill: var(--pink-soft);
+  font-weight: 600;
+}
+
+.reveal .arch-diagram .wallet .hl {
+  fill: var(--pink);
+  font-weight: 700;
+}
+
+.reveal .arch-diagram .wallet .t-sep {
+  fill: var(--pink-soft);
+  opacity: 0.5;
+}
+
+.reveal .arch-diagram .proxy rect {
+  stroke: var(--good);
+  stroke-width: 2;
+  fill: #0f1f1a;
+}
+
+.reveal .arch-diagram .pallet rect {
+  stroke: var(--pink);
+  stroke-width: 2;
+  fill: rgba(230, 0, 122, 0.07);
+}
+
+.reveal .arch-diagram .contract rect {
+  stroke: var(--pink);
+  stroke-width: 1.5;
+}
+
+.reveal .arch-diagram .t-title {
+  fill: var(--ink);
+  font-size: 23px;
+  font-weight: 700;
+  text-anchor: middle;
+}
+
+.reveal .arch-diagram .pallet-label {
+  fill: var(--pink-soft);
+  font-size: 26px;
+}
+
+.reveal .arch-diagram .t-sub {
+  fill: var(--ink-dim);
+  font-size: 16px;
+  text-anchor: middle;
+  font-family: var(--mono);
+}
+
+.reveal .arch-diagram .t-sub.dim {
+  fill: #6a6a85;
+  font-size: 15px;
+}
+
+.reveal .arch-diagram .dim-ext {
+  fill: #6a6a85;
+}
+
+.reveal .arch-diagram .t-port {
+  fill: var(--good);
+  font-family: var(--mono);
+  font-weight: 700;
+}
+
+.reveal .arch-diagram .t-mono {
+  fill: var(--pink-soft);
+  font-family: var(--mono);
+  font-weight: 600;
+}
+
+.reveal .arch-diagram .pallet .t-mono {
+  fill: var(--good);
+}
+
+.reveal .arch-diagram .t-sep {
+  fill: #5a5a78;
+  font-weight: 400;
+}
+
+.reveal .arch-diagram .arrow {
+  stroke: var(--pink);
+  stroke-width: 2;
+  fill: none;
+}
+
+.reveal .arch-diagram .src-badge-bg {
+  fill: rgba(230, 0, 122, 0.12);
+  stroke: rgba(230, 0, 122, 0.4);
+  stroke-width: 1;
+}
+
+.reveal .arch-diagram .t-badge {
+  fill: var(--pink-soft);
+  font-size: 14px;
+  font-family: var(--mono);
+  text-anchor: middle;
+}
+
+.reveal .diagram-label {
+  font-family: var(--mono);
+  font-size: 0.65em;
+  color: var(--ink-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  margin: 0 0 0.4em 0;
+  text-align: center;
+}
+
+/* Market lifecycle FSM (slide 4) */
+.reveal .fsm-diagram {
+  display: block;
+  width: 100%;
+  height: auto;
+  margin: 0.6em auto 1em auto;
+  font-family: var(--sans);
+}
+
+.reveal .fsm-diagram.fsm-wide {
+  max-width: 780px;
+}
+
+.reveal .fsm-diagram .state rect {
+  fill: var(--bg-2);
+  stroke: rgba(255, 255, 255, 0.15);
+  stroke-width: 1.5;
+}
+
+.reveal .fsm-diagram .state.good rect {
+  fill: rgba(124, 245, 176, 0.08);
+  stroke: var(--good);
+}
+
+.reveal .fsm-diagram .state.bad rect {
+  fill: rgba(255, 107, 107, 0.08);
+  stroke: var(--bad);
+}
+
+.reveal .fsm-diagram .state text {
+  fill: var(--ink);
+  font-size: 14px;
+  font-weight: 600;
+  text-anchor: middle;
+  dominant-baseline: central;
+}
+
+.reveal .fsm-diagram .state.good text {
+  fill: var(--good);
+}
+
+.reveal .fsm-diagram .state.bad text {
+  fill: var(--bad);
+}
+
+.reveal .fsm-diagram .farr {
+  stroke: var(--pink);
+  stroke-width: 2;
+  fill: none;
+}
+
+.reveal .fsm-diagram .flow-label {
+  fill: var(--ink-dim);
+  font-size: 11px;
+  font-family: var(--mono);
+  text-anchor: middle;
+  letter-spacing: 0.02em;
+}
+
+.reveal .fsm-diagram .flow-label.left {
+  text-anchor: start;
+}
+
+/* Diagrams */
+.reveal pre.diagram {
+  box-shadow: none;
+  width: 100%;
+  margin: 0.3em 0;
+  background: transparent;
+}
+
+.reveal pre.diagram code {
+  font-family: var(--mono);
+  font-size: 0.5em;
+  line-height: 1.35;
+  color: var(--ink-dim);
+  background: var(--bg-2);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 1em 1.2em;
+  display: block;
+  white-space: pre;
+  overflow-x: auto;
+}
+
+.reveal pre.diagram.small code {
+  font-size: 0.42em;
+}
+
+.reveal pre.diagram .hl {
+  color: var(--pink-soft);
+  font-weight: 600;
+}
+
+/* Small bullets under diagrams */
+.reveal .bullets-sm {
+  font-size: 0.65em;
+  color: var(--ink-dim);
+  margin-top: 0.6em;
+  line-height: 1.55;
+}
+
+.reveal .bullets-sm li strong {
+  color: var(--ink);
+}
+
+/* Large bullets for standalone game-theory slide */
+.reveal .bullets-lg {
+  font-size: 1em;
+  color: var(--ink-dim);
+  margin-top: 1.4em;
+  line-height: 1.9;
+}
+
+.reveal .bullets-lg li strong {
+  color: var(--ink);
+}
+
+.reveal .footer-chip {
+  margin-top: 0.4em;
+  font-family: var(--mono);
+  font-size: 0.7em;
+  color: var(--ink-dim);
+  text-align: center;
+}
+
+/* Body background with subtle gradient */
+html,
+body,
+.reveal {
+  background: var(--bg);
+}
+
+.reveal::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  background:
+    radial-gradient(1200px 600px at 15% -10%, rgba(230, 0, 122, 0.18), transparent 70%),
+    radial-gradient(900px 500px at 110% 110%, rgba(124, 245, 176, 0.06), transparent 70%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.reveal .slides {
+  z-index: 1;
+}
+
+/* Print / PDF: keep it readable */
+@media print {
+  .reveal::before {
+    display: none;
+  }
+}

@@ -1,8 +1,13 @@
 {
   "name": "slides",
   "module": "index.ts",
-  "type": "module",
   "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "bun --hot ./index.ts",
+    "start": "bun ./index.ts",
+    "build": "bun build ./index.html --outdir ./dist --minify --target browser"
+  },
   "devDependencies": {
     "@types/bun": "latest"
   },
@@ -10,6 +15,6 @@
     "typescript": "^5"
   },
   "dependencies": {
-    "reveal-md": "^6.1.4"
+    "reveal.js": "^6.0.1"
   }
 }

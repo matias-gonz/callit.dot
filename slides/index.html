@@ -1,0 +1,433 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+		<title>Callit — Decentralized Prediction Markets on Polkadot</title>
+		<link rel="stylesheet" href="./node_modules/reveal.js/dist/reset.css" />
+		<link rel="stylesheet" href="./node_modules/reveal.js/dist/reveal.css" />
+		<link rel="stylesheet" href="./node_modules/reveal.js/dist/theme/black.css" id="theme" />
+		<link
+			rel="stylesheet"
+			href="./node_modules/reveal.js/dist/plugin/highlight/monokai.css"
+			id="highlight-theme"
+		/>
+		<link rel="stylesheet" href="./styles.css" />
+	</head>
+	<body>
+		<div class="reveal">
+			<div class="slides">
+				<!-- Slide 1 — Title -->
+				<section class="title-slide" data-background-color="#0b0b12">
+					<h1 class="title">Callit.dot</h1>
+					<h3 class="subtitle">Decentralized Prediction Markets on Polkadot</h3>
+					<p class="tagline"><em>create, predict, resolve</em> and <em>claim</em></p>
+					<p class="chip"><span class="live-dot"></span>Live on callit00.dot</p>
+
+					<aside class="notes">
+						Callit is a decentralized binary prediction market. Anyone can create a
+						question, bet YES or NO with native tokens, and anyone can resolve the
+						outcome. No company, no custodian, no off-chain orderbook. A single smart
+						contract handles the full lifecycle. It's live on Paseo Hub TestNet right
+						now.
+					</aside>
+				</section>
+
+				<!-- Slide 2 — Problem -->
+				<section data-background-color="#0b0b12">
+					<h2 class="section-title">
+						Polymarket Is <span class="accent">Not</span> Permissionless
+					</h2>
+					<div class="two-col">
+						<div class="col col-bad">
+							<h3>Centralized platforms</h3>
+							<p class="col-sub">Polymarket and friends</p>
+							<ul>
+								<li>Censorship</li>
+								<li>Funds can be frozen</li>
+								<li class="col-verdict"><strong>Trust the company</strong></li>
+							</ul>
+						</div>
+						<div class="col col-good">
+							<h3>Callit</h3>
+							<p class="col-sub">One smart contract</p>
+							<ul>
+								<li>Permissionless</li>
+								<li>Non-custodial</li>
+								<li class="col-verdict"><strong>Trust the code</strong></li>
+							</ul>
+						</div>
+					</div>
+
+					<aside class="notes">
+						Polymarket is the biggest prediction market and it's fundamentally
+						centralized. They decide what questions get listed, they run resolution,
+						they hold your funds. If they get a subpoena or decide your market is
+						inconvenient, it disappears. Callit makes every one of those operator roles
+						into a smart contract function. There is no compliance team.
+					</aside>
+				</section>
+
+				<!-- Slide 3 — Architecture -->
+				<section data-background-color="#0b0b12">
+					<h2 class="section-title">Architecture</h2>
+
+					<svg
+						class="arch-diagram"
+						viewBox="0 0 1200 360"
+						xmlns="http://www.w3.org/2000/svg"
+						role="img"
+						aria-label="Callit architecture diagram"
+					>
+						<defs>
+							<marker
+								id="arr"
+								viewBox="0 0 10 10"
+								refX="9"
+								refY="5"
+								markerWidth="6"
+								markerHeight="6"
+								orient="auto"
+							>
+								<path d="M0,1 L9,5 L0,9 z" fill="#e6007a" />
+							</marker>
+						</defs>
+
+						<!-- Row 1: three client surfaces -->
+						<g class="box surface web">
+							<rect x="90" y="10" width="280" height="104" rx="10" />
+							<text x="230" y="42" class="t-title">Web App</text>
+							<text x="230" y="68" class="t-sub">React · viem</text>
+							<text x="230" y="96" class="t-sub wallet">
+								<tspan class="t-mono hl">PAPI</tspan>
+								<tspan class="t-sep">·</tspan>
+								<tspan class="t-mono hl">PWallet</tspan>
+							</text>
+						</g>
+						<g class="box surface">
+							<rect x="460" y="10" width="280" height="104" rx="10" />
+							<text x="600" y="46" class="t-title">callit-cli</text>
+							<text x="600" y="74" class="t-sub">Rust · alloy</text>
+							<text x="600" y="96" class="t-sub dim">Ethereum JSON-RPC</text>
+						</g>
+						<g class="box surface">
+							<rect x="830" y="10" width="280" height="104" rx="10" />
+							<text x="970" y="46" class="t-title">callit-mcp</text>
+							<text x="970" y="74" class="t-sub">Rust · rmcp</text>
+							<text x="970" y="96" class="t-sub dim">typed tools over stdio</text>
+						</g>
+
+						<!-- Arrows: clients → pallet-revive -->
+						<line
+							x1="230"
+							y1="114"
+							x2="230"
+							y2="152"
+							class="arrow"
+							marker-end="url(#arr)"
+						/>
+						<line
+							x1="600"
+							y1="114"
+							x2="600"
+							y2="152"
+							class="arrow"
+							marker-end="url(#arr)"
+						/>
+						<line
+							x1="970"
+							y1="114"
+							x2="970"
+							y2="152"
+							class="arrow"
+							marker-end="url(#arr)"
+						/>
+
+						<!-- pallet-revive + eth-rpc proxy (Polkadot Hub) -->
+						<g class="box pallet">
+							<rect x="90" y="152" width="1020" height="70" rx="10" />
+							<text x="600" y="182" class="t-title">
+								<tspan class="pallet-label">pallet-revive</tspan>
+							</text>
+							<text x="600" y="206" class="t-sub dim">
+								Ethereum JSON-RPC · Polkadot Hub · Paseo TestNet
+							</text>
+						</g>
+
+						<!-- Split arrows: hub → contracts -->
+						<path
+							d="M 600 222 L 600 246 L 285 246 L 285 266"
+							class="arrow"
+							fill="none"
+							marker-end="url(#arr)"
+						/>
+						<path
+							d="M 600 222 L 600 246 L 915 246 L 915 266"
+							class="arrow"
+							fill="none"
+							marker-end="url(#arr)"
+						/>
+
+						<!-- Contracts -->
+						<g class="box contract">
+							<rect x="100" y="266" width="370" height="82" rx="10" />
+							<text x="285" y="294" class="t-title">EVM PredictionMarket</text>
+							<text x="285" y="318" class="t-sub">
+								compiled by
+								<tspan class="t-mono">solc</tspan>
+							</text>
+							<text x="285" y="338" class="t-sub dim">standard EVM bytecode</text>
+						</g>
+						<g class="box contract pvm">
+							<rect x="730" y="266" width="370" height="82" rx="10" />
+							<text x="915" y="294" class="t-title">PVM PredictionMarket</text>
+							<text x="915" y="318" class="t-sub">
+								compiled by
+								<tspan class="t-mono">resolc</tspan>
+							</text>
+							<text x="915" y="338" class="t-sub dim">RISC-V · PolkaVM</text>
+						</g>
+
+						<!-- Shared source badge -->
+						<rect
+							x="495"
+							y="295"
+							width="210"
+							height="24"
+							rx="12"
+							class="src-badge-bg"
+						/>
+						<text x="600" y="311" class="t-badge">same PredictionMarket.sol</text>
+					</svg>
+
+					<aside class="notes">
+						Three ways to drive Callit. The web app connects to PWallet — the Polkadot
+						app — through the Triangle Host API from Nova Sama. PWallet holds the
+						accounts and signs. The CLI uses alloy and a plain Ethereum RPC connection
+						with its own signers. And the MCP server exposes every contract function as
+						a typed tool over stdio, so an LLM like Claude can create markets, buy
+						shares, resolve, and claim — all through natural language, with no manual
+						transaction signing. All three converge on the same deployed addresses. The
+						same Solidity source is compiled twice — once with solc for standard EVM,
+						once with resolc from Parity for PolkaVM, which runs RISC-V. Both are
+						deployed. On top sits an eth-rpc proxy that translates standard Ethereum
+						JSON-RPC into Substrate extrinsics — so viem, alloy, MetaMask all just work.
+					</aside>
+				</section>
+
+				<!-- Slide 4a — Market Lifecycle -->
+				<section data-background-color="#0b0b12">
+					<h2 class="section-title">Market <span class="accent">Lifecycle</span></h2>
+
+					<svg
+						class="fsm-diagram fsm-wide"
+						viewBox="0 0 460 170"
+						xmlns="http://www.w3.org/2000/svg"
+						role="img"
+						aria-label="Market state machine"
+					>
+						<defs>
+							<marker
+								id="fsm-arr"
+								viewBox="0 0 10 10"
+								refX="9"
+								refY="5"
+								markerWidth="6"
+								markerHeight="6"
+								orient="auto"
+							>
+								<path d="M0,1 L9,5 L0,9 z" fill="#e6007a" />
+							</marker>
+						</defs>
+
+						<!-- Top row -->
+						<g class="state">
+							<rect x="10" y="15" width="65" height="36" rx="18" />
+							<text x="42" y="33">Open</text>
+						</g>
+						<line
+							x1="75"
+							y1="33"
+							x2="88"
+							y2="33"
+							class="farr"
+							marker-end="url(#fsm-arr)"
+						/>
+
+						<g class="state">
+							<rect x="90" y="15" width="90" height="36" rx="18" />
+							<text x="135" y="33">Resolving</text>
+						</g>
+						<line
+							x1="180"
+							y1="33"
+							x2="193"
+							y2="33"
+							class="farr"
+							marker-end="url(#fsm-arr)"
+						/>
+
+						<g class="state">
+							<rect x="195" y="15" width="90" height="36" rx="18" />
+							<text x="240" y="33">Proposed</text>
+						</g>
+						<line
+							x1="285"
+							y1="33"
+							x2="298"
+							y2="33"
+							class="farr"
+							marker-end="url(#fsm-arr)"
+						/>
+						<text x="342" y="9" class="flow-label">24h · no dispute</text>
+
+						<g class="state good">
+							<rect x="300" y="15" width="90" height="36" rx="18" />
+							<text x="345" y="33">Finalized</text>
+						</g>
+
+						<!-- Branch down -->
+						<line
+							x1="240"
+							y1="51"
+							x2="240"
+							y2="103"
+							class="farr"
+							marker-end="url(#fsm-arr)"
+						/>
+						<text x="250" y="80" class="flow-label left">dispute</text>
+
+						<!-- Bottom row -->
+						<g class="state bad">
+							<rect x="195" y="105" width="90" height="36" rx="18" />
+							<text x="240" y="123">Disputed</text>
+						</g>
+						<line
+							x1="285"
+							y1="123"
+							x2="298"
+							y2="123"
+							class="farr"
+							marker-end="url(#fsm-arr)"
+						/>
+						<text x="342" y="99" class="flow-label">god oracle</text>
+
+						<g class="state good">
+							<rect x="300" y="105" width="90" height="36" rx="18" />
+							<text x="345" y="123">Finalized</text>
+						</g>
+					</svg>
+
+					<aside class="notes">
+						A market goes through Open → Resolving → Proposed. From Proposed, two paths:
+						if no one disputes within 24 hours it finalizes and the resolver gets their
+						bond back. If disputed, both bonds are locked and the god oracle makes the
+						final call.
+					</aside>
+				</section>
+
+				<!-- Slide 4b — Game Theory -->
+				<section data-background-color="#0b0b12">
+					<h2 class="section-title">
+						Why Resolvers <span class="accent">Tell the Truth</span>
+					</h2>
+
+					<ul class="bullets-lg">
+						<li><strong>Wrong resolution</strong> → lose bond to the disputer</li>
+						<li><strong>Frivolous dispute</strong> → lose bond to the resolver</li>
+						<li><strong>Honest behavior</strong> is the only rational strategy</li>
+					</ul>
+
+					<aside class="notes">
+						The answer is skin in the game. Anyone can resolve by posting a bond. If
+						disputed, both sides have money on the line — loser's bond goes to the
+						winner. Resolvers are honest because a wrong resolution costs them their
+						bond. Disputers are honest because a frivolous challenge costs them their
+						bond. No protocol fee needed — the economics are self-funding.
+					</aside>
+				</section>
+
+				<!-- Slide 5 — pallet-revive gotchas -->
+				<section data-background-color="#0b0b12">
+					<h2 class="section-title">pallet-revive <span class="accent">Gotchas</span></h2>
+
+					<div class="two-col two-col-tight">
+						<div class="col col-gotcha">
+							<h3>Map the account first</h3>
+							<p class="col-sub">32-byte keys don't map to H160 automatically</p>
+							<pre class="gotcha-code"><code>if (!(await api.isAddressMapped(origin))) {
+  await watchTx(mapAccount(typedApi, signer));
+}</code></pre>
+						</div>
+						<div class="col col-gotcha">
+							<h3>value is plancks, not wei</h3>
+							<p class="col-sub">divide by NativeToEthRatio before calling the SDK</p>
+							<pre class="gotcha-code"><code>const nativeValue =
+  valueWei / (await typedApi
+    .constants.Revive.NativeToEthRatio());</code></pre>
+						</div>
+					</div>
+
+					<aside class="notes">
+						Two gotchas when calling pallet-revive contracts from a Substrate frontend.
+						First: every Substrate account must call map_account once — 32-byte keys
+						don't map to 20-byte H160 addresses automatically. Second: the SDK value
+						field is in native plancks, not wei. Passing parseEther directly asks
+						pallet-revive to move millions of PAS. Keep everything in wei internally
+						and divide by NativeToEthRatio right before calling the SDK.
+					</aside>
+				</section>
+
+				<!-- Slide 6 — Demo -->
+				<section class="title-slide" data-background-color="#0b0b12">
+					<h1 class="title demo-title">Demo</h1>
+					<aside class="notes">Live demo.</aside>
+				</section>
+
+				<!-- Slide 7 — Future -->
+				<section data-background-color="#0b0b12">
+					<h2 class="section-title">What Comes <span class="accent">Next</span></h2>
+
+					<div class="three-col">
+						<div class="card">
+							<div class="card-num">01</div>
+							<h3>ERC-1155 shares</h3>
+							<p>Tradeable positions · DeFi composability</p>
+						</div>
+						<div class="card">
+							<div class="card-num">02</div>
+							<h3>Decentralized oracle</h3>
+							<p>No single point of trust</p>
+						</div>
+						<div class="card">
+							<div class="card-num">03</div>
+							<h3>Bulletin Chain</h3>
+							<p>Rich metadata off contract · content hash on-chain</p>
+						</div>
+					</div>
+
+					<aside class="notes">
+						Three improvements worth building. First: ERC-1155 shares so positions are
+						actual tokens you can sell before resolution — secondary markets, DeFi
+						composability. Second: replace the god oracle with a decentralized,
+						community-driven resolution mechanism — no single point of trust. Third: use
+						Polkadot's Bulletin Chain to store rich market metadata off-contract and
+						keep only a content hash on-chain.
+					</aside>
+				</section>
+
+				<!-- Closing -->
+				<section class="title-slide" data-background-color="#0b0b12">
+					<h1 class="title title-sm">Thank you</h1>
+					<p class="tagline">
+						Callit.dot: <em>create, predict, resolve</em> and <em>claim</em>
+					</p>
+					<p class="chip"><span class="live-dot"></span>Live on callit00.dot</p>
+					<aside class="notes">Questions?</aside>
+				</section>
+			</div>
+		</div>
+
+		<script type="module" src="./frontend.ts"></script>
+	</body>
+</html>
