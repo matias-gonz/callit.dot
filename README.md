@@ -23,7 +23,7 @@ All surfaces share the same deployed contract — addresses in [`deployments.jso
 | PVM | `0xb3d565cc1b459295971d32d7643d555b908183f0` |
 | EVM | `0x2e23ad027063f59ed31daf2a10984eb9171a56b9` |
 
-RPC: `https://eth-rpc-testnet.polkadot.io/` · Explorer: [blockscout-testnet.polkadot.io](https://blockscout-testnet.polkadot.io/) · Faucet: [faucet.polkadot.io](https://faucet.polkadot.io/)
+Frontend: [callit00.paseo.li](https://callit00.paseo.li) · RPC: `https://eth-rpc-testnet.polkadot.io/` · Explorer: [blockscout-testnet.polkadot.io](https://blockscout-testnet.polkadot.io/) · Faucet: [faucet.polkadot.io](https://faucet.polkadot.io/)
 
 ## Quick start
 
